@@ -19,59 +19,58 @@ streamlit run app.py
 
 ## Format file yang dibutuhkan
 
-**File LBP (.txt / .xlsx)** — pipe-delimited (`|`), kolom mengikuti `LBP.txt` yang sudah diuji:
+**File LBP (.txt / .xlsx)** — pipe-delimited (`|`), bisa upload lebih dari satu
+file sekaligus (tahun dideteksi otomatis dari `Tanggal Faktur`), kolom:
 `No Outlet, Nama Outlet, Grup Outlet, Tipe Outlet, KG, Tanggal Faktur, Faktur, TRANSTYPE, Kode Sales, Pcode, Nama Produk, Kemasan, QTYPCS, AMOUNT, Harga Bruto, DISC, DISC1KH, PROAMOUNT, Total, XQTYPCS, Channel, Alamat, Kabupaten, Kecamatan, Kelurahan, Divisi, WEEK, Periode, Kode Pasar, Salesman, Salesforce, Sales Team, CALLCYCLE, Hari Kunjungan, Kredit Limit, SUBBRAND, SUBBRANDNAME`
 
-**File Target (.xlsx)** — 3 kolom: `Kode Sales`, `Periode`, `Target`.
+**File Target (.xlsx)** — 2 sheet:
+- `Target All`: `Kode Sales`, `Periode`, `Target`
+- `Target Divisi`: `Kode Sales`, `Periode`, `Divisi`, `Target`
+
+**File DMP (.txt)** — pipe-delimited, dipakai untuk kolom Rayon. Minimal
+butuh `KODEOUTLET`, `RAYON`, `SALESMAN`, `LASTUPDATE`.
 
 ## Keputusan & asumsi yang perlu kamu tahu
 
-- **LTD NPL & Komparasi Tahun (YoY)**: baru sebatas tab placeholder — logic
-  belum dibuat, menunggu definisi rumus LTD NPL dan alur upload data
-  pembanding tahun sebelumnya.
-- **Standar CB/EC/IPT**: baru untuk `TO-Retail` (300/20/6) dan `TO-Grosir` (90/12/10),
-  dibaca dari substring `"TO RETAIL"` / `"TO GROSIR"` pada kolom `Salesforce`.
-  Team lain (Motoris, MUH, Sales Office, dst) tampil dengan `% OA` dan `% MHS` kosong.
-- **CB Standpro Area** (di sidebar ⚙️ Option): nilai default adalah saran
-  otomatis (jumlah standar CB dari salesman yang sedang difilter), tapi
-  field-nya tetap manual dan bisa kamu timpa — ini yang menentukan `OA %`
-  di top bar.
-- **Pie chart Overview** dibatasi persis 6 irisan terbesar (salesman, wilayah,
-  subbrand) tanpa "Lainnya", sesuai instruksi. **Pie chart By Wilayah / By
-  Subbrand & Divisi / Pasar** dibatasi top 10 + irisan "Lainnya" supaya tetap
-  terbaca untuk kategori yang jumlahnya banyak (Kecamatan/Kelurahan bisa
-  puluhan).
-- **Pasar "N/A"**: baris dengan keterangan Kode Pasar `N/A` dikecualikan dari
-  menu By Pasar (mayoritas outlet di data kamu memang belum punya nama pasar
-  resmi — dari 41.016 baris, cuma 6.825 yang punya nama pasar).
-- **Menu MHS "SKU belum masuk"**: dibandingkan terhadap SKU yang pernah laku
-  di outlet lain dengan Tipe Outlet yang sama (proxy), karena belum ada file
-  master SKU per channel. Ganti fungsi `universe_sku_per_tipe_outlet()` di
-  `app.py` begitu kamu punya file master SKU resmi.
-- **Divisi**: ditampilkan sebagai kode mentah (`16`, `06`, dst) karena tidak
-  ada tabel nama Divisi di data — tambahkan mapping-nya sendiri kalau ada.
-- Semua angka penjualan ditampilkan sebagai teks berformat `Rp 123,456,789`
-  di tabel (bukan kolom angka native) supaya formatnya konsisten dan tidak
-  terpotong — trade-off-nya kolom itu jadi tidak bisa di-sort numerik di UI.
-- Judul di Update.txt tertulis "MV42" (sketsa awal sebelumnya "MU42") — dipakai
-  "MV42" sesuai instruksi terakhir. Kasih tahu kalau ini typo.
+- **LTD NPL & Performance SS**: baru tab placeholder — logic belum dibuat.
+- **Standar CB/EC/IPT & skema Insentif**: baru untuk `TO-Retail` dan
+  `TO-Grosir` (dibaca dari substring `"TO RETAIL"` / `"TO GROSIR"` pada
+  kolom `Salesforce`). Team lain (Motoris, MUH, dst) tidak punya skema
+  insentif dan tidak muncul di tab Insentif.
+- **Dedup SKU (menu MHS)**: pakai normalisasi nama produk (buang kata
+  "NEW", rapikan spasi/kapitalisasi) sebagai kunci unik, BUKAN Pcode
+  mentah — sesuai instruksi kamu (contoh "Wow Goreng new" vs "Wow Goreng"
+  dihitung 1). Divalidasi ke data asli: dari 129 Pcode unik, ketemu 1 kasus
+  yang tergabung jadi 128 SKU unik ("WOW SPAGETI GORENG GB 5GBX12PCX79G").
+- **DMP / Rayon**: baris "VACANT" dan Rayon kosong dibuang; kalau 1 outlet
+  py>1 baris, dipakai `LASTUPDATE` paling baru. Dari data contoh, 4.956
+  outlet punya Rayon valid, ter-mapping ke 27.418 dari 41.016 baris LBP
+  (outlet yang tidak match DMP tampil Rayon kosong, tidak error).
+- **CB Standpro Area** (sidebar): saran otomatis dari salesman yang
+  difilter, tapi tetap manual dan bisa ditimpa.
+- **Komparasi tahun**: upload LBP multi-file, tahun dideteksi otomatis.
+  Toggle "Bandingkan dengan tahun lalu" menambahkan badge (▲/▼ % ) di
+  KPI utama top bar. Pencocokan periode antar tahun pakai **nomor Periode
+  yang sama** (Periode 9 2026 vs Periode 9 2025). Badge baru ditaruh di
+  level ringkasan (top bar), bukan di setiap baris tabel, supaya tetap
+  terbaca — beri tahu saya kalau kamu mau badge ini diperluas ke tabel lain.
+- **Insentif**: menghitung 4 kriteria dari PDF skema M245 (Sales, Sales per
+  Kategori x4 Divisi, Must Have SKU, Outlet Active), tier dicocokkan ke
+  tabel nominal resmi. Bagian Reward & Punishment (Tagihan, Visit in
+  Radius) TIDAK dihitung sesuai instruksi.
+- **Pie chart Overview**: persis 6 irisan terbesar tanpa "Lainnya". **Pie
+  chart By Wilayah/Subbrand/Divisi/Pasar**: top 10 + irisan "Lainnya".
+- **Pasar "N/A"** dikecualikan dari menu By Pasar.
+- **Divisi** di luar 5/6/8/16 masih kode mentah (belum ada tabel nama
+  lengkap).
+- Semua angka penjualan → teks `Rp 123,456,789`; kalau datanya belum ada
+  (target/gap belum diupload) → tampil `-`, bukan `Rp nan`.
 
-### Bug penting yang sudah diperbaiki
+### Bug penting yang sudah diperbaiki (dari update sebelumnya, masih berlaku)
 
-1. **Trailing pipe di LBP.txt** — setiap baris file diakhiri karakter `|`
-   tambahan. Tanpa `index_col=False` saat `pd.read_csv`, pandas salah
-   mengira kolom pertama adalah index dan semua kolom lain geser satu posisi
-   (kolom "Salesman" jadi berisi data "Salesforce", dst). Sudah ditangani di
-   `load_lbp()`.
-2. **Retur (R) sudah negatif di sumber data, bukan positif** — ini akar
-   masalah "pencapaian belum dikurangi" yang kamu laporkan. Di kolom `Harga
-   Bruto`, baris dengan `TRANSTYPE == "R"` SUDAH tersimpan sebagai angka
-   negatif (mis. `-490000`), bukan `490000` positif. Formula lama
-   `Bruto F - Bruto R` jadinya malah MENAMBAHKAN retur ke pencapaian
-   (minus dikali minus jadi plus) — hasilnya pencapaian bisa lebih besar
-   dari bruto F, jelas salah. Formula yang benar adalah `Bruto F + Bruto R`
-   (R sudah membawa tanda minus sendiri). Sudah diverifikasi ke seluruh data:
-   Bruto F = Rp 5.010.609.612, Retur = Rp 123.645.763 → Pencapaian yang
-   benar = **Rp 4.886.963.849** (versi lama salah menghasilkan
-   Rp 5.134.255.375 — lebih besar dari Bruto F, mustahil). Sudah diperbaiki
-   di `net_by_group()` dan `hitung_pencapaian()`.
+1. **Trailing pipe di LBP.txt** — bikin kolom geser 1 posisi kalau tidak
+   pakai `index_col=False` saat `pd.read_csv`. Sudah ditangani.
+2. **Retur (R) sudah negatif di sumber data** — neto yang benar `Bruto F +
+   Bruto R` (bukan `F - R`), karena R sudah membawa tanda minus sendiri.
+   Sudah diverifikasi ke seluruh data: Bruto F = Rp 5.010.609.612, Retur =
+   Rp 123.645.763 → Pencapaian benar = Rp 4.886.963.849.
