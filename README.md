@@ -12,10 +12,37 @@ streamlit run app.py
 
 ## Cara deploy ke Streamlit Community Cloud
 
-1. Push folder ini (`app.py`, `requirements.txt`, `.streamlit/config.toml`) ke repo GitHub.
+1. Push folder ini (`app.py`, `requirements.txt`, `.streamlit/config.toml`, `.gitignore`) ke repo GitHub.
 2. Buka [share.streamlit.io](https://share.streamlit.io), hubungkan ke repo tersebut.
 3. Set entrypoint ke `app.py`, deploy.
-4. Setiap update: upload ulang file LBP & Target langsung dari UI (tidak perlu upload ulang ke GitHub) — file diproses saat runtime, bukan disimpan di repo.
+4. **Set password**: di halaman app kamu di Streamlit Cloud, buka Settings →
+   Secrets, isi:
+   ```toml
+   APP_PASSWORD = "password-kamu-di-sini"
+   ```
+   Ini WAJIB kalau kamu mengaktifkan fitur "file yang pernah diupload"
+   (poin di bawah), supaya file penjualan tidak bisa dilihat orang lain yang
+   kebetulan tahu link app-nya. Kalau secret ini tidak diisi, dashboard bisa
+   diakses tanpa password (cocok untuk develop lokal).
+5. Setiap update data: upload ulang file LBP/Target/DMP langsung dari UI, atau
+   pilih dari file yang sudah pernah diupload sebelumnya (lihat poin
+   "File yang pernah diupload" di bawah) — tidak perlu push ulang ke GitHub.
+
+## File yang pernah diupload (tidak perlu drag-drop ulang)
+
+Setiap file yang kamu upload otomatis disimpan ke folder `saved_uploads/` di
+server. Lain kali buka dashboard, di sidebar akan muncul pilihan "...atau
+pakai file yang sudah pernah diupload" untuk LBP, Target, dan DMP — tinggal
+pilih, tidak perlu upload ulang.
+
+**Penting soal privasi**: folder `saved_uploads/` sudah masuk `.gitignore`
+supaya data penjualan tidak pernah ter-commit ke GitHub. Tapi karena file ini
+tersimpan di server yang menjalankan app, siapa pun yang berhasil login
+(tahu `APP_PASSWORD`) bisa melihat/memilih file yang sama — jadi pastikan
+password hanya dipegang orang yang memang boleh akses data ini. Di Streamlit
+Community Cloud, penyimpanan ini juga bisa hilang kalau app di-redeploy atau
+container-nya di-restart (bukan penyimpanan permanen jangka panjang) — jadi
+tetap simpan file asli kamu di tempat lain sebagai cadangan.
 
 ## Format file yang dibutuhkan
 

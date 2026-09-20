@@ -28,6 +28,7 @@ daftar lengkap. Ringkasan perubahan besar di versi ini (Update 3.0):
 7. Menu "Performance SS" ditambahkan sebagai placeholder (akan dikembangkan).
 """
 
+import os
 import re
 import numpy as np
 import pandas as pd
@@ -57,7 +58,7 @@ STANDAR_TEAM = {
     "TO-Retail": {"CB": 300, "EC": 20, "IPT": 6},
     "TO-Grosir": {"CB": 90, "EC": 12, "IPT": 10},
 }
-TARGET_SKU_MHS = {"111": 7, "113": 10, "114": 15, "115": 15, "105": 20, "109": 20, "110": 20}
+TARGET_SKU_MHS = {"111": 7, "113": 10, "114": 15, "115": 15, "105": 20, "109": 20, "110": 20, "116": 20}
 TIPE_OUTLET_LABEL = {
     "111": "111 - Retail Small", "113": "113 - Retail Large", "114": "114 - Semi Grosir",
     "118": "118 - Kantin", "146": "146 - MUH", "115": "115 - Grosir",
@@ -83,6 +84,13 @@ INSENTIF_TIERS = {
     },
 }
 
+INSENTIF_TIERS_SS = {
+    "sales": [(90, 800_000), (95, 1_100_000), (100, 1_600_000), (110, 2_350_000)],
+    "category": [(90, 125_000), (95, 170_000), (100, 250_000), (110, 400_000)],
+    "mhs": [(60, 800_000), (70, 1_100_000), (80, 1_600_000), (90, 2_350_000)],
+    "oa": [(90, 500_000), (95, 1_000_000), (100, 1_500_000)],
+}
+
 ACCENT = "#F5B301"
 PALETTE = ["#F5B301", "#38BDF8", "#34D399", "#F472B6", "#A78BFA", "#FB923C", "#94A3B8", "#F87171", "#4ADE80", "#60A5FA", "#FBBF24"]
 
@@ -94,8 +102,8 @@ def inject_css():
     st.markdown(f"""
     <style>
     .app-title {{
-        text-align:center; text-transform:uppercase; letter-spacing:1.5px;
-        font-size:2.1rem; font-weight:800; margin-bottom:0.1rem;
+        text-align:center; text-transform:uppercase; letter-spacing:2px;
+        font-size:3.4rem; font-weight:800; margin-bottom:0.1rem; line-height:1.1;
         background: linear-gradient(90deg, {ACCENT}, #38BDF8);
         -webkit-background-clip:text; -webkit-text-fill-color:transparent;
     }}
@@ -419,34 +427,125 @@ def hitung_mhs_by_salesman(tampil: pd.DataFrame, df_scope: pd.DataFrame) -> pd.D
 
 
 # =====================================================================
-# 4. SIDEBAR — Option (upload), Tahun, Pilih Salesman, Periode/Week/HKA/CB
+# 4. AKSES & SIDEBAR — password gate, Option (upload / pakai file lama),
+#    Tahun, Pilih Salesman, Periode/Week/HKA/CB
 # =====================================================================
 inject_css()
+
+SAVED_DIR = "saved_uploads"
+SAVED_SUBDIRS = {"lbp": "lbp", "target": "target", "dmp": "dmp"}
+for _sub in SAVED_SUBDIRS.values():
+    os.makedirs(os.path.join(SAVED_DIR, _sub), exist_ok=True)
+
+
+def _file_name(file) -> str:
+    return file if isinstance(file, str) else file.name
+
+
+def list_saved_files(subdir: str):
+    d = os.path.join(SAVED_DIR, subdir)
+    files = [f for f in os.listdir(d) if not f.startswith(".")]
+    return sorted(files, key=lambda f: os.path.getmtime(os.path.join(d, f)), reverse=True)
+
+
+def save_uploaded_file(file, subdir: str) -> None:
+    path = os.path.join(SAVED_DIR, subdir, file.name)
+    with open(path, "wb") as f:
+        f.write(file.getvalue())
+
+
+def check_password() -> bool:
+    """Gerbang password sederhana. Password diset lewat Streamlit Secrets
+    (APP_PASSWORD) — kalau secret ini tidak diset (mis. saat develop lokal),
+    gerbang dilewati otomatis supaya tidak menghalangi development."""
+    app_password = st.secrets.get("APP_PASSWORD") if hasattr(st, "secrets") else None
+    if not app_password:
+        return True
+    if st.session_state.get("app_authenticated"):
+        return True
+    st.markdown('<div class="app-title">Dashboard Operational Area MV42</div>', unsafe_allow_html=True)
+    st.markdown('<div class="app-subtitle">Masukkan password untuk mengakses dashboard</div>', unsafe_allow_html=True)
+    _, mid, _ = st.columns([1, 1, 1])
+    with mid:
+        pw = st.text_input("Password", type="password", label_visibility="collapsed")
+        if st.button("Masuk", use_container_width=True):
+            if pw == app_password:
+                st.session_state.app_authenticated = True
+                st.rerun()
+            else:
+                st.error("Password salah.")
+    return False
+
+
+if not check_password():
+    st.stop()
 
 with st.sidebar:
     st.markdown("### ⚙️ Option")
     target_file = st.file_uploader("Upload File Target (.xlsx, sheet 'Target All' & 'Target Divisi')",
                                     type=["xls", "xlsx"])
-    lbp_files = st.file_uploader("Upload File LBP (.txt / .xls) — bisa lebih dari 1 tahun sekaligus",
-                                  type=["txt", "csv", "xls", "xlsx"], accept_multiple_files=True)
+    if target_file is not None:
+        save_uploaded_file(target_file, SAVED_SUBDIRS["target"])
+    else:
+        saved_targets = list_saved_files(SAVED_SUBDIRS["target"])
+        if saved_targets:
+            pilih_target = st.selectbox("...atau pakai file Target yang sudah pernah diupload",
+                                         ["(tidak pakai)"] + saved_targets, key="pilih_target_saved")
+            if pilih_target != "(tidak pakai)":
+                target_file = os.path.join(SAVED_DIR, SAVED_SUBDIRS["target"], pilih_target)
+
+    lbp_files_uploaded = st.file_uploader("Upload File LBP (.txt / .xls) — bisa lebih dari 1 tahun sekaligus",
+                                           type=["txt", "csv", "xls", "xlsx"], accept_multiple_files=True)
+    for _f in lbp_files_uploaded:
+        save_uploaded_file(_f, SAVED_SUBDIRS["lbp"])
+    saved_lbp = list_saved_files(SAVED_SUBDIRS["lbp"])
+    pilih_lbp_saved = []
+    if saved_lbp:
+        pilih_lbp_saved = st.multiselect("...atau pakai file LBP yang sudah pernah diupload", saved_lbp,
+                                          key="pilih_lbp_saved")
+    lbp_files = list(lbp_files_uploaded) + [os.path.join(SAVED_DIR, SAVED_SUBDIRS["lbp"], f) for f in pilih_lbp_saved]
+
     dmp_file = st.file_uploader("Upload File DMP (.txt) — untuk info Rayon", type=["txt", "csv"])
+    if dmp_file is not None:
+        save_uploaded_file(dmp_file, SAVED_SUBDIRS["dmp"])
+    else:
+        saved_dmp = list_saved_files(SAVED_SUBDIRS["dmp"])
+        if saved_dmp:
+            pilih_dmp = st.selectbox("...atau pakai file DMP yang sudah pernah diupload",
+                                      ["(tidak pakai)"] + saved_dmp, key="pilih_dmp_saved")
+            if pilih_dmp != "(tidak pakai)":
+                dmp_file = os.path.join(SAVED_DIR, SAVED_SUBDIRS["dmp"], pilih_dmp)
+
+def _as_file_obj(file):
+    """Path string (file lama yang disimpan) -> BytesIO dengan .name, supaya
+    load_lbp/load_target/load_dmp bisa perlakukan sama seperti UploadedFile,
+    dan cache Streamlit key-nya berdasarkan ISI file (bukan sekadar nama)."""
+    if isinstance(file, str):
+        from io import BytesIO
+        with open(file, "rb") as f:
+            data = f.read()
+        buf = BytesIO(data)
+        buf.name = os.path.basename(file)
+        return buf
+    return file
+
 
 if not lbp_files:
-    st.info("Upload minimal 1 file LBP di sidebar (⚙️ Option) untuk mulai melihat dashboard.")
+    st.info("Upload minimal 1 file LBP di sidebar (⚙️ Option), atau pilih dari file yang sudah pernah diupload.")
     st.stop()
 
 lbp_by_year: dict[int, pd.DataFrame] = {}
 for f in lbp_files:
-    d = load_lbp(f)
+    d = load_lbp(_as_file_obj(f))
     for y, g in d.groupby(d[COL["tanggal"]].dt.year.dropna().astype(int)):
         lbp_by_year[y] = pd.concat([lbp_by_year.get(y, pd.DataFrame()), g], ignore_index=True)
 
-target_all, target_divisi = load_target(target_file) if target_file is not None else (
+target_all, target_divisi = load_target(_as_file_obj(target_file)) if target_file is not None else (
     pd.DataFrame(columns=[TARGET_ALL_COL["kode_sales"], TARGET_ALL_COL["periode"], TARGET_ALL_COL["target"]]),
     pd.DataFrame(columns=[TARGET_DIVISI_COL["kode_sales"], TARGET_DIVISI_COL["periode"],
                            TARGET_DIVISI_COL["divisi"], TARGET_DIVISI_COL["target"], "_divisi_norm"]))
 
-rayon_map = load_dmp(dmp_file) if dmp_file is not None else pd.DataFrame(columns=[COL["outlet"], "Rayon"])
+rayon_map = load_dmp(_as_file_obj(dmp_file)) if dmp_file is not None else pd.DataFrame(columns=[COL["outlet"], "Rayon"])
 for y in lbp_by_year:
     if not rayon_map.empty:
         lbp_by_year[y] = lbp_by_year[y].merge(rayon_map, on=COL["outlet"], how="left")
@@ -512,8 +611,7 @@ if bandingkan:
 st.markdown('<div class="app-title">Dashboard Operational Area MV42</div>', unsafe_allow_html=True)
 st.markdown(
     f'<div class="app-subtitle">Tahun {tahun_aktif} &middot; Periode {", ".join(map(str, periode_sel)) or "-"} '
-    f'&middot; Week {", ".join(map(str, week_sel)) or "-"} &middot; '
-    f'{len(salesman_terpilih)} salesman terpilih'
+    f'&middot; {len(salesman_terpilih)} salesman terpilih'
     f'{" &middot; komparasi vs " + str(tahun_aktif - 1) + " aktif" if bandingkan else ""}</div>',
     unsafe_allow_html=True,
 )
@@ -654,16 +752,35 @@ with tab_sales:
 
         net_by_sales_div["% Capaian"] = (net_by_sales_div["Net Sales"] / net_by_sales_div["Target"] * 100).round(1)
         net_by_sales_div["Gap Harian"] = ((net_by_sales_div["Target"] - net_by_sales_div["Net Sales"]) / hka).round(0) if hka else np.nan
-        tbl_div = net_by_sales_div.rename(columns={COL["salesman"]: "Salesman"})[
+        tbl_div_long = net_by_sales_div.rename(columns={COL["salesman"]: "Salesman"})[
             ["Salesman", "Divisi", "Target", "Net Sales", "% Capaian", "Gap Harian"]
-        ].sort_values(["Salesman", "Divisi"])
-        st.dataframe(format_cols(tbl_div, rp_cols=["Target", "Net Sales", "Gap Harian"], pct_cols=["% Capaian"]),
-                     hide_index=True, use_container_width=True, height=340)
-        download_button(tbl_div, "Download Excel (Capaian by Divisi)", "by_salesman_divisi.xlsx", "dl_sales_div")
+        ]
+
+        # Pivot memanjang ke kanan: tiap Divisi jadi 4 kolom (Target/Net Sales/% Capaian/Gap Harian)
+        # bersebelahan, satu baris per Salesman — bukan satu baris per Salesman x Divisi.
+        wide_parts = []
+        rp_cols_wide, pct_cols_wide = [], []
+        for lbl in DIVISI_LABEL.values():
+            sub = tbl_div_long[tbl_div_long["Divisi"] == lbl].set_index("Salesman")[
+                ["Target", "Net Sales", "% Capaian", "Gap Harian"]
+            ].copy()
+            sub.columns = [f"{lbl} — {c}" for c in sub.columns]
+            rp_cols_wide += [f"{lbl} — Target", f"{lbl} — Net Sales", f"{lbl} — Gap Harian"]
+            pct_cols_wide.append(f"{lbl} — % Capaian")
+            wide_parts.append(sub)
+        tbl_div_wide = pd.concat(wide_parts, axis=1).reset_index() if wide_parts else pd.DataFrame(columns=["Salesman"])
+
+        st.dataframe(format_cols(tbl_div_wide, rp_cols=rp_cols_wide, pct_cols=pct_cols_wide),
+                     hide_index=True, use_container_width=True, height=280)
+        download_button(tbl_div_long, "Download Excel (Capaian by Divisi)", "by_salesman_divisi.xlsx", "dl_sales_div")
 
 # ---------------------------------------------------------------- By Wilayah
 with tab_wilayah:
     icon_level = {"Kabupaten": "🏙️", "Kecamatan": "🏘️", "Kelurahan": "🏠"}
+    # Kelurahan cenderung py banyak kategori kecil sehingga irisan "Lainnya" bisa
+    # mendominasi pie chart dan tidak informatif -> untuk level ini pie TIDAK
+    # pakai bucket "Lainnya", cukup tampilkan top 15 kontributor asli.
+    pie_config = {"Kabupaten": (10, True), "Kecamatan": (10, True), "Kelurahan": (15, False)}
     for label, col in [("Kabupaten", COL["kabupaten"]), ("Kecamatan", COL["kecamatan"]),
                         ("Kelurahan", COL["kelurahan"])]:
         with st.container(border=True):
@@ -675,13 +792,15 @@ with tab_wilayah:
                              hide_index=True, use_container_width=True, height=380)
                 download_button(agg, f"Download Excel ({label})", f"wilayah_{label.lower()}.xlsx", f"dl_wil_{label}")
             with colR:
-                pie_data = top_categories_for_pie(agg[[col, "Omzet"]], col, "Omzet", 10, True)
+                n_pie, other_pie = pie_config[label]
+                pie_data = top_categories_for_pie(agg[[col, "Omzet"]], col, "Omzet", n_pie, other_pie)
                 st.plotly_chart(pie_chart(pie_data, col, "Omzet", f"Kontribusi Omzet by {label}"), use_container_width=True)
         st.write("")
 
     with st.container(border=True):
         st.markdown("#### 🏬 Penjualan by Pasar")
-        st.caption("Kode Pasar dengan keterangan 'N/A' (belum ada nama pasar resmi) dikecualikan.")
+        st.caption("Kode Pasar dengan keterangan 'N/A' (belum ada nama pasar resmi) dikecualikan. Pie tidak "
+                   "pakai bucket 'Lainnya' supaya tidak didominasi satu irisan — tampil top 15 pasar asli.")
         dfp = df_filtered.copy()
         dfp["_pasar_desc"] = dfp[COL["kode_pasar"]].astype(str).str.split("-", n=1).str[-1].str.strip().str.upper()
         dfp = dfp[dfp["_pasar_desc"] != "N/A"]
@@ -695,7 +814,7 @@ with tab_wilayah:
             if agg_pasar.empty:
                 st.info("Tidak ada data pasar dengan nama resmi (selain N/A) pada filter saat ini.")
             else:
-                pie_pasar = top_categories_for_pie(agg_pasar[[COL["kode_pasar"], "Omzet"]], COL["kode_pasar"], "Omzet", 10, True)
+                pie_pasar = top_categories_for_pie(agg_pasar[[COL["kode_pasar"], "Omzet"]], COL["kode_pasar"], "Omzet", 15, False)
                 st.plotly_chart(pie_chart(pie_pasar, COL["kode_pasar"], "Omzet", "Kontribusi Omzet by Pasar"), use_container_width=True)
 
 # ---------------------------------------------------------------- By Subbrand & Divisi
@@ -822,6 +941,21 @@ with tab_mhs:
                 belum_masuk = semua_sku_tipe[~semua_sku_tipe["_produk_norm"].isin(sudah_norm)][[COL["pcode"], COL["nama_produk"]]]
                 st.dataframe(belum_masuk, hide_index=True, use_container_width=True, height=300)
 
+    st.write("")
+    with st.container(border=True):
+        st.markdown("#### 📋 Summary per Outlet (untuk dicek / dibagikan ke Salesman)")
+        st.caption("List toko sesuai filter Salesman & Rayon di atas, dengan status SKU masuk/belum — format "
+                   "ringkas supaya gampang dicek atau di-share langsung ke salesman yang bersangkutan.")
+        summary_outlet = tampil_with_rayon.copy()
+        summary_outlet["Status"] = np.where(summary_outlet["Kekurangan SKU"] <= 0, "✅ Lengkap", "⚠️ Kurang")
+        kolom_summary = ["No Outlet", "Nama Outlet", "Salesman", "Rayon", "Target SKU", "SKU Terjual",
+                          "Kekurangan SKU", "Status"]
+        kolom_summary = [c for c in kolom_summary if c in summary_outlet.columns]
+        summary_outlet = summary_outlet[kolom_summary].sort_values(["Salesman", "Kekurangan SKU"], ascending=[True, False])
+        st.dataframe(summary_outlet, hide_index=True, use_container_width=True, height=380)
+        download_button(summary_outlet, "Download Excel (Summary per Outlet — siap dibagikan)",
+                         "mhs_summary_per_outlet.xlsx", "dl_mhs_summary")
+
 # ---------------------------------------------------------------- Insentif
 with tab_insentif:
     with st.container(border=True):
@@ -922,7 +1056,87 @@ with tab_ltdnpl:
 with tab_ss:
     with st.container(border=True):
         st.markdown("#### 📈 Performance SS")
-        st.info("Menu ini akan dikembangkan lebih lanjut.")
+        st.caption("Rekap gabungan dari SEMUA salesman yang sedang dipilih di sidebar (⚙️ Option → Pilih "
+                   "Salesman) — anggap ini sebagai tim yang dihandle satu Sales Supervisor. Insentif dihitung "
+                   "pakai skema Sales Supervisor (IBN) M245, bukan skema per-salesman.")
+        st.info(f"Tim yang direkap saat ini: **{len(salesman_terpilih)} salesman**.")
+
+    st.write("")
+    with st.container(border=True):
+        st.markdown("#### 💰 Omzet")
+        net_divisi_ss = net_by_group(df_filtered, ["_divisi_norm"], "Omzet")
+        net_divisi_ss = net_divisi_ss[net_divisi_ss["_divisi_norm"].isin(DIVISI_LABEL.keys())]
+        net_divisi_ss["Divisi"] = net_divisi_ss["_divisi_norm"].map(DIVISI_LABEL)
+
+        col_all, col_div = st.columns([1, 2])
+        with col_all:
+            kpi_card("💰", "Omzet All (Neto)", fmt_rp(pencapaian))
+        with col_div:
+            st.dataframe(format_cols(net_divisi_ss[["Divisi", "Omzet"]].sort_values("Omzet", ascending=False),
+                                     rp_cols=["Omzet"]), hide_index=True, use_container_width=True, height=180)
+
+    st.write("")
+    with st.container(border=True):
+        st.markdown("#### ⚙️ Productivity")
+        ec_total_ss = int(ringkasan_sales.loc[ringkasan_sales["Salesman"].isin(salesman_terpilih), "EC"].sum())
+        total_lolos_ss = mhs_by_sales_all["Outlet Lolos MHS"].sum() if not mhs_by_sales_all.empty else 0
+        total_cb_ss = mhs_by_sales_all["CB Standar"].dropna().sum() if not mhs_by_sales_all.empty else 0
+        pct_mhs_ss = (total_lolos_ss / total_cb_ss * 100) if total_cb_ss else 0
+
+        p1, p2, p3 = st.columns(3)
+        with p1:
+            kpi_card("📞", "EC (akumulasi)", f"{ec_total_ss}")
+        with p2:
+            kpi_card("🏪", "OA", f"{oa_total} outlet", f"{oa_pct:.1f}% dari CB Standpro Area")
+        with p3:
+            kpi_card("📦", "% MHS", fmt_pct(pct_mhs_ss), f"{int(total_lolos_ss)} / {int(total_cb_ss)} CB Standar")
+
+    st.write("")
+    with st.container(border=True):
+        st.markdown("#### 🎯 Insentif Sales Supervisor (Skema IBN M245)")
+        st.caption("Reward & Punishment (Tagihan, Visit in Radius) tidak dihitung, sama seperti menu Insentif salesman.")
+
+        pct_sales_ss = (pencapaian / target_total * 100) if target_total else np.nan
+        insentif_sales_ss = tier_lookup(pct_sales_ss, INSENTIF_TIERS_SS["sales"])
+
+        detail_kategori_ss = []
+        insentif_kategori_ss = 0
+        for kode_div, label_div in DIVISI_LABEL.items():
+            net_val = net_divisi_ss.loc[net_divisi_ss["_divisi_norm"] == kode_div, "Omzet"]
+            net_val = net_val.iloc[0] if not net_val.empty else 0
+            tgt_val = 0
+            if not target_divisi.empty:
+                t = target_divisi[target_divisi[TARGET_DIVISI_COL["kode_sales"]].isin(kode_sales_scope) &
+                                   (target_divisi["_divisi_norm"] == kode_div)]
+                if periode_sel:
+                    t = t[t[TARGET_DIVISI_COL["periode"]].isin(periode_sel)]
+                tgt_val = t[TARGET_DIVISI_COL["target"]].sum()
+            pct_cat = (net_val / tgt_val * 100) if tgt_val else np.nan
+            nilai_cat = tier_lookup(pct_cat, INSENTIF_TIERS_SS["category"])
+            insentif_kategori_ss += nilai_cat
+            detail_kategori_ss.append(f"{label_div}: {fmt_pct(pct_cat)} → {fmt_rp(nilai_cat)}")
+
+        insentif_mhs_ss = tier_lookup(pct_mhs_ss, INSENTIF_TIERS_SS["mhs"])
+        insentif_oa_ss = tier_lookup(oa_pct, INSENTIF_TIERS_SS["oa"])
+        total_insentif_ss = insentif_sales_ss + insentif_kategori_ss + insentif_mhs_ss + insentif_oa_ss
+
+        st.markdown(f'<div class="big-nominal">{fmt_rp(total_insentif_ss)}</div>', unsafe_allow_html=True)
+
+        tbl_ss = pd.DataFrame([{
+            "% Capaian Sales": pct_sales_ss, "Insentif Sales": insentif_sales_ss,
+            "Insentif Kategori (4 Divisi)": insentif_kategori_ss,
+            "% MHS": pct_mhs_ss, "Insentif MHS": insentif_mhs_ss,
+            "% OA": oa_pct, "Insentif OA": insentif_oa_ss,
+            "Total Insentif": total_insentif_ss,
+        }])
+        st.dataframe(format_cols(tbl_ss, rp_cols=["Insentif Sales", "Insentif Kategori (4 Divisi)", "Insentif MHS",
+                                                    "Insentif OA", "Total Insentif"],
+                                 pct_cols=["% Capaian Sales", "% MHS", "% OA"]),
+                     hide_index=True, use_container_width=True)
+        with st.expander("Lihat rincian per Divisi (Coffee/Cereal/Instant Food/Homecare)"):
+            for line in detail_kategori_ss:
+                st.write(line)
+        download_button(tbl_ss, "Download Excel (Performance SS)", "performance_ss.xlsx", "dl_ss")
 
 # ---------------------------------------------------------------- Read Me
 with tab_readme:
@@ -946,8 +1160,11 @@ with tab_readme:
     st.write("")
     with st.container(border=True):
         st.markdown("#### 📖 Skema Insentif M245 (Agustus-September 2026)")
-        st.caption("Sumber: Scheme TO Retail & TO Grosir Agust-Sept 2026 (PDF resmi). Reward & Punishment tidak dipakai.")
-        for team, tiers in INSENTIF_TIERS.items():
+        st.caption("Sumber: Scheme TO Retail, TO Grosir & Sales Supervisor (IBN) Agust-Sept 2026 (PDF resmi). "
+                   "Reward & Punishment tidak dipakai.")
+        all_tiers_readme = dict(INSENTIF_TIERS)
+        all_tiers_readme["Sales Supervisor (SS)"] = INSENTIF_TIERS_SS
+        for team, tiers in all_tiers_readme.items():
             st.markdown(f"**{team}**")
             df_show = pd.DataFrame({
                 "Kriteria": ["Sales M245"] * len(tiers["sales"]) + ["Sales per Kategori (x4 Divisi)"] * len(tiers["category"]) +
