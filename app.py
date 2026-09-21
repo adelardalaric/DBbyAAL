@@ -207,25 +207,98 @@ def load_lbp(file) -> pd.DataFrame:
     return df
 
 
+def _find_sheet(xls: pd.ExcelFile, name_contains: list) -> str | None:
+    for s in xls.sheet_names:
+        norm = re.sub(r"\s+", " ", s.strip().upper())
+        if norm in name_contains:
+            return s
+    return None
+
+
+def _find_col(columns, must_contain: list, must_not_contain: list = ()) -> str | None:
+    for c in columns:
+        norm = c.strip().upper()
+        if all(tok in norm for tok in must_contain) and not any(tok in norm for tok in must_not_contain):
+            return c
+    return None
+
+
 @st.cache_data(show_spinner="Memproses file target...")
 def load_target(file):
-    try:
-        target_all = pd.read_excel(file, sheet_name="Target All", dtype=str)
-        target_all.columns = [c.strip() for c in target_all.columns]
-        target_all[TARGET_ALL_COL["target"]] = pd.to_numeric(target_all[TARGET_ALL_COL["target"]], errors="coerce").fillna(0)
-        target_all[TARGET_ALL_COL["periode"]] = pd.to_numeric(target_all[TARGET_ALL_COL["periode"]], errors="coerce").fillna(0).astype(int)
-    except Exception:
-        target_all = pd.DataFrame(columns=[TARGET_ALL_COL["kode_sales"], TARGET_ALL_COL["periode"], TARGET_ALL_COL["target"]])
+    empty_all = pd.DataFrame(columns=["Kode Sales", "Periode", "Target"])
+    empty_divisi = pd.DataFrame(columns=["Kode Sales", "Periode", "Divisi", "Target", "_divisi_norm"])
+    if file is None:
+        return empty_all, empty_divisi
 
     try:
-        target_divisi = pd.read_excel(file, sheet_name="Target Divisi", dtype=str)
-        target_divisi.columns = [c.strip() for c in target_divisi.columns]
-        target_divisi[TARGET_DIVISI_COL["target"]] = pd.to_numeric(target_divisi[TARGET_DIVISI_COL["target"]], errors="coerce").fillna(0)
-        target_divisi[TARGET_DIVISI_COL["periode"]] = pd.to_numeric(target_divisi[TARGET_DIVISI_COL["periode"]], errors="coerce").fillna(0).astype(int)
-        target_divisi["_divisi_norm"] = target_divisi[TARGET_DIVISI_COL["divisi"]].astype(str).str.strip().apply(lambda x: x.lstrip("0") or "0")
+        xls = pd.ExcelFile(file)
     except Exception:
-        target_divisi = pd.DataFrame(columns=[TARGET_DIVISI_COL["kode_sales"], TARGET_DIVISI_COL["periode"],
-                                               TARGET_DIVISI_COL["divisi"], TARGET_DIVISI_COL["target"], "_divisi_norm"])
+        return empty_all, empty_divisi
+
+    # ---- Target All ----
+    target_all = empty_all
+    sheet_all = _find_sheet(xls, ["TARGET ALL"])
+    if sheet_all:
+        try:
+            raw = pd.read_excel(xls, sheet_name=sheet_all, dtype=str)
+            raw.columns = [c.strip() for c in raw.columns]
+            kode_col = _find_col(raw.columns, ["KODE"])
+            target_col = _find_col(raw.columns, ["TARGET"])
+            periode_col = _find_col(raw.columns, ["PERIODE"])
+            if kode_col and target_col:
+                out = pd.DataFrame()
+                out["Kode Sales"] = raw[kode_col].astype(str).str.strip()
+                out["Target"] = pd.to_numeric(raw[target_col], errors="coerce").fillna(0)
+                # Kalau file tidak punya kolom Periode, target ini dianggap berlaku
+                # untuk SEMUA periode yang dipilih (Periode = <NA>, bukan 0).
+                out["Periode"] = pd.to_numeric(raw[periode_col], errors="coerce").astype("Int64") if periode_col else pd.array([pd.NA] * len(raw), dtype="Int64")
+                target_all = out
+        except Exception:
+            target_all = empty_all
+
+    # ---- Target Divisi ----
+    target_divisi = empty_divisi
+    sheet_divisi = _find_sheet(xls, ["TARGET DIVISI"])
+    if sheet_divisi:
+        try:
+            raw = pd.read_excel(xls, sheet_name=sheet_divisi, dtype=str)
+            raw.columns = [c.strip() for c in raw.columns]
+            kode_col = _find_col(raw.columns, ["KODE"])
+            periode_col = _find_col(raw.columns, ["PERIODE"])
+            # Kolom divisi: format panjang ("Divisi" + "Target" terpisah) ATAU
+            # format lebar (satu kolom per divisi, mis. "5 - COFFE", "16 - HOME CARE").
+            divisi_col_long = _find_col(raw.columns, ["DIVISI"])
+            target_col_long = _find_col(raw.columns, ["TARGET"])
+            wide_divisi_cols = [c for c in raw.columns if re.match(r"^\s*\d+\s*-", c)]
+
+            if kode_col and wide_divisi_cols:
+                rows = []
+                for _, r in raw.iterrows():
+                    for dc in wide_divisi_cols:
+                        kode_div = dc.split("-", 1)[0].strip()
+                        rows.append({
+                            "Kode Sales": str(r[kode_col]).strip(),
+                            "Divisi": kode_div,
+                            "Target": r[dc],
+                            "Periode": pd.to_numeric(r[periode_col], errors="coerce") if periode_col else pd.NA,
+                        })
+                out = pd.DataFrame(rows)
+                out["Target"] = pd.to_numeric(out["Target"], errors="coerce").fillna(0)
+                out["Periode"] = out["Periode"].astype("Int64") if periode_col else pd.array([pd.NA] * len(out), dtype="Int64")
+                target_divisi = out
+            elif kode_col and divisi_col_long and target_col_long:
+                out = pd.DataFrame()
+                out["Kode Sales"] = raw[kode_col].astype(str).str.strip()
+                out["Divisi"] = raw[divisi_col_long].astype(str).str.strip()
+                out["Target"] = pd.to_numeric(raw[target_col_long], errors="coerce").fillna(0)
+                out["Periode"] = pd.to_numeric(raw[periode_col], errors="coerce").astype("Int64") if periode_col else pd.array([pd.NA] * len(raw), dtype="Int64")
+                target_divisi = out
+
+            if not target_divisi.empty:
+                target_divisi["_divisi_norm"] = target_divisi["Divisi"].astype(str).str.strip().apply(lambda x: x.lstrip("0") or "0")
+        except Exception:
+            target_divisi = empty_divisi
+
     return target_all, target_divisi
 
 
@@ -339,7 +412,7 @@ def tier_lookup(pct, tiers) -> int:
     return value
 
 
-def ringkasan_by_salesman(df: pd.DataFrame, target_all: pd.DataFrame, periode_sel, hka: float) -> pd.DataFrame:
+def ringkasan_by_salesman(df: pd.DataFrame, target_all: pd.DataFrame, periode_sel, hke: float) -> pd.DataFrame:
     f_only = df[df[COL["transtype"]] == "F"]
 
     net = net_by_group(df, [COL["kode_sales"], COL["salesman"], "team_simple"], "Net Sales")
@@ -365,7 +438,7 @@ def ringkasan_by_salesman(df: pd.DataFrame, target_all: pd.DataFrame, periode_se
     if not target_all.empty:
         tgt = target_all.copy()
         if periode_sel:
-            tgt = tgt[tgt[TARGET_ALL_COL["periode"]].isin(periode_sel)]
+            tgt = tgt[tgt[TARGET_ALL_COL["periode"]].isna() | tgt[TARGET_ALL_COL["periode"]].isin(periode_sel)]
         tgt = tgt.groupby(TARGET_ALL_COL["kode_sales"])[TARGET_ALL_COL["target"]].sum().reset_index()
         out = out.merge(tgt, left_on=COL["kode_sales"], right_on=TARGET_ALL_COL["kode_sales"], how="left")
         out = out.rename(columns={TARGET_ALL_COL["target"]: "Target"})
@@ -373,7 +446,7 @@ def ringkasan_by_salesman(df: pd.DataFrame, target_all: pd.DataFrame, periode_se
         out["Target"] = np.nan
 
     out["% Capaian"] = (out["Net Sales"] / out["Target"] * 100).round(1)
-    out["Gap Harian"] = ((out["Target"] - out["Net Sales"]) / hka).round(0) if hka else np.nan
+    out["Gap Harian"] = ((out["Target"] - out["Net Sales"]) / hke).round(0) if hke else np.nan
 
     out = out.rename(columns={COL["kode_sales"]: "Kode Sales", COL["salesman"]: "Salesman", "team_simple": "Team"})
     return out.sort_values("Net Sales", ascending=False)
@@ -444,8 +517,22 @@ def _file_name(file) -> str:
 
 def list_saved_files(subdir: str):
     d = os.path.join(SAVED_DIR, subdir)
-    files = [f for f in os.listdir(d) if not f.startswith(".")]
-    return sorted(files, key=lambda f: os.path.getmtime(os.path.join(d, f)), reverse=True)
+    try:
+        files = [f for f in os.listdir(d) if not f.startswith(".")]
+    except FileNotFoundError:
+        return []
+
+    def safe_mtime(f):
+        try:
+            return os.path.getmtime(os.path.join(d, f))
+        except FileNotFoundError:
+            return 0
+
+    # File bisa saja hilang di antara listdir() dan getmtime() kalau ada rerun/
+    # sesi lain yang menimpa folder yang sama di saat bersamaan (filesystem
+    # Streamlit Cloud dipakai bareng antar rerun) — buang yang sudah tak ada.
+    files = [f for f in files if os.path.exists(os.path.join(d, f))]
+    return sorted(files, key=safe_mtime, reverse=True)
 
 
 def save_uploaded_file(file, subdir: str) -> None:
@@ -519,9 +606,15 @@ with st.sidebar:
 def _as_file_obj(file):
     """Path string (file lama yang disimpan) -> BytesIO dengan .name, supaya
     load_lbp/load_target/load_dmp bisa perlakukan sama seperti UploadedFile,
-    dan cache Streamlit key-nya berdasarkan ISI file (bukan sekadar nama)."""
+    dan cache Streamlit key-nya berdasarkan ISI file (bukan sekadar nama).
+    Return None kalau file-nya ternyata sudah tidak ada di server (mis. habis
+    container di-restart) — dibiarkan gagal dengan sopan, bukan crash total."""
     if isinstance(file, str):
         from io import BytesIO
+        if not os.path.exists(file):
+            st.warning(f"File '{os.path.basename(file)}' yang tersimpan sebelumnya sudah tidak ada di server "
+                       "(kemungkinan app sempat di-restart) — silakan upload ulang file ini.")
+            return None
         with open(file, "rb") as f:
             data = f.read()
         buf = BytesIO(data)
@@ -536,16 +629,25 @@ if not lbp_files:
 
 lbp_by_year: dict[int, pd.DataFrame] = {}
 for f in lbp_files:
-    d = load_lbp(_as_file_obj(f))
+    f_obj = _as_file_obj(f)
+    if f_obj is None:
+        continue
+    d = load_lbp(f_obj)
     for y, g in d.groupby(d[COL["tanggal"]].dt.year.dropna().astype(int)):
         lbp_by_year[y] = pd.concat([lbp_by_year.get(y, pd.DataFrame()), g], ignore_index=True)
 
-target_all, target_divisi = load_target(_as_file_obj(target_file)) if target_file is not None else (
+if not lbp_by_year:
+    st.error("Tidak ada data LBP yang berhasil dimuat. Silakan upload ulang file LBP.")
+    st.stop()
+
+_target_file_obj = _as_file_obj(target_file) if target_file is not None else None
+target_all, target_divisi = load_target(_target_file_obj) if _target_file_obj is not None else (
     pd.DataFrame(columns=[TARGET_ALL_COL["kode_sales"], TARGET_ALL_COL["periode"], TARGET_ALL_COL["target"]]),
     pd.DataFrame(columns=[TARGET_DIVISI_COL["kode_sales"], TARGET_DIVISI_COL["periode"],
                            TARGET_DIVISI_COL["divisi"], TARGET_DIVISI_COL["target"], "_divisi_norm"]))
 
-rayon_map = load_dmp(_as_file_obj(dmp_file)) if dmp_file is not None else pd.DataFrame(columns=[COL["outlet"], "Rayon"])
+_dmp_file_obj = _as_file_obj(dmp_file) if dmp_file is not None else None
+rayon_map = load_dmp(_dmp_file_obj) if _dmp_file_obj is not None else pd.DataFrame(columns=[COL["outlet"], "Rayon"])
 for y in lbp_by_year:
     if not rayon_map.empty:
         lbp_by_year[y] = lbp_by_year[y].merge(rayon_map, on=COL["outlet"], how="left")
@@ -580,6 +682,7 @@ with st.sidebar:
     periode_sel = st.multiselect("Filter Periode", periode_opts, default=periode_opts)
     week_sel = st.multiselect("Filter Week", week_opts, default=week_opts)
     hka = st.number_input("HKA (Hari Kerja Aktif)", min_value=0, value=24, step=1)
+    hke = st.number_input("HKE (Hari Kerja Efektif) — pembagi Gap Harian", min_value=0, value=24, step=1)
 
 df_filtered = df_sales_scope.copy()
 if periode_sel:
@@ -624,10 +727,10 @@ target_total = 0
 if not target_all.empty:
     tgt_df = target_all[target_all[TARGET_ALL_COL["kode_sales"]].isin(kode_sales_scope)]
     if periode_sel:
-        tgt_df = tgt_df[tgt_df[TARGET_ALL_COL["periode"]].isin(periode_sel)]
+        tgt_df = tgt_df[tgt_df[TARGET_ALL_COL["periode"]].isna() | tgt_df[TARGET_ALL_COL["periode"]].isin(periode_sel)]
     target_total = tgt_df[TARGET_ALL_COL["target"]].sum()
 
-gap_harian_total = ((target_total - pencapaian) / hka) if hka else 0
+gap_harian_total = ((target_total - pencapaian) / hke) if hke else 0
 oa_pct = (oa_total / cb_standpro_area * 100) if cb_standpro_area else 0
 
 pencapaian_prev = oa_prev = None
@@ -643,7 +746,7 @@ with k2:
               f"Bruto F {fmt_rp(bruto_f)} &middot; Retur {pct_retur:.2f}% ({fmt_rp(bruto_r)})",
               compare_badge(pencapaian, pencapaian_prev) if bandingkan else "")
 with k3:
-    kpi_card("📉", "Gap Harian", fmt_rp(gap_harian_total), f"HKA yang dipakai: {hka}")
+    kpi_card("📉", "Gap Harian", fmt_rp(gap_harian_total), f"HKE yang dipakai: {hke}")
 with k4:
     kpi_card("🏪", "OA (Outlet Aktif)", f"{oa_total} outlet",
               f"{oa_pct:.1f}% dari CB Standpro Area ({cb_standpro_area})",
@@ -654,7 +757,7 @@ st.divider()
 # =====================================================================
 # 6. TABS
 # =====================================================================
-ringkasan_sales = ringkasan_by_salesman(df_filtered, target_all, periode_sel, hka)
+ringkasan_sales = ringkasan_by_salesman(df_filtered, target_all, periode_sel, hke)
 mhs_resume_all = hitung_mhs_resume(df_filtered)
 mhs_by_sales_all = hitung_mhs_by_salesman(mhs_resume_all, df_filtered)
 
@@ -741,7 +844,7 @@ with tab_sales:
         if not target_divisi.empty:
             tgt_div = target_divisi.copy()
             if periode_sel:
-                tgt_div = tgt_div[tgt_div[TARGET_DIVISI_COL["periode"]].isin(periode_sel)]
+                tgt_div = tgt_div[tgt_div[TARGET_DIVISI_COL["periode"]].isna() | tgt_div[TARGET_DIVISI_COL["periode"]].isin(periode_sel)]
             tgt_div = tgt_div.groupby([TARGET_DIVISI_COL["kode_sales"], "_divisi_norm"])[TARGET_DIVISI_COL["target"]].sum().reset_index()
             net_by_sales_div = net_by_sales_div.merge(
                 tgt_div, left_on=[COL["kode_sales"], "_divisi_norm"],
@@ -751,7 +854,7 @@ with tab_sales:
             net_by_sales_div["Target"] = np.nan
 
         net_by_sales_div["% Capaian"] = (net_by_sales_div["Net Sales"] / net_by_sales_div["Target"] * 100).round(1)
-        net_by_sales_div["Gap Harian"] = ((net_by_sales_div["Target"] - net_by_sales_div["Net Sales"]) / hka).round(0) if hka else np.nan
+        net_by_sales_div["Gap Harian"] = ((net_by_sales_div["Target"] - net_by_sales_div["Net Sales"]) / hke).round(0) if hke else np.nan
         tbl_div_long = net_by_sales_div.rename(columns={COL["salesman"]: "Salesman"})[
             ["Salesman", "Divisi", "Target", "Net Sales", "% Capaian", "Gap Harian"]
         ]
@@ -991,7 +1094,7 @@ with tab_insentif:
                     t = target_divisi[(target_divisi[TARGET_DIVISI_COL["kode_sales"]] == kode_sales) &
                                        (target_divisi["_divisi_norm"] == kode_div)]
                     if periode_sel:
-                        t = t[t[TARGET_DIVISI_COL["periode"]].isin(periode_sel)]
+                        t = t[t[TARGET_DIVISI_COL["periode"]].isna() | t[TARGET_DIVISI_COL["periode"]].isin(periode_sel)]
                     tgt_val = t[TARGET_DIVISI_COL["target"]].sum()
                 pct_cat = (net_val / tgt_val * 100) if tgt_val else np.nan
                 nilai_cat = tier_lookup(pct_cat, tiers["category"])
@@ -1056,21 +1159,40 @@ with tab_ltdnpl:
 with tab_ss:
     with st.container(border=True):
         st.markdown("#### 📈 Performance SS")
-        st.caption("Rekap gabungan dari SEMUA salesman yang sedang dipilih di sidebar (⚙️ Option → Pilih "
-                   "Salesman) — anggap ini sebagai tim yang dihandle satu Sales Supervisor. Insentif dihitung "
-                   "pakai skema Sales Supervisor (IBN) M245, bukan skema per-salesman.")
-        st.info(f"Tim yang direkap saat ini: **{len(salesman_terpilih)} salesman**.")
+        st.caption("Rekap gabungan dari salesman yang difilter di bawah ini — anggap ini sebagai tim yang "
+                   "dihandle satu Sales Supervisor. Insentif dihitung pakai skema Sales Supervisor (IBN) M245, "
+                   "bukan skema per-salesman.")
+        salesman_filter_ss = st.multiselect("Filter salesman", salesman_terpilih, default=salesman_terpilih,
+                                             key="ss_salesman_filter")
+        st.info(f"Tim yang direkap saat ini: **{len(salesman_filter_ss)} salesman**.")
+
+    df_ss_scope = df_filtered[df_filtered[COL["salesman"]].isin(salesman_filter_ss)] if salesman_filter_ss else df_filtered.iloc[0:0]
+    kode_sales_scope_ss = df_ss_scope[COL["kode_sales"]].unique().tolist()
+
+    pencapaian_ss, bruto_f_ss, bruto_r_ss, pct_retur_ss = hitung_pencapaian(df_ss_scope)
+    oa_total_ss = hitung_oa(df_ss_scope)
+
+    target_total_ss = 0
+    if not target_all.empty:
+        tgt_df_ss = target_all[target_all[TARGET_ALL_COL["kode_sales"]].isin(kode_sales_scope_ss)]
+        if periode_sel:
+            tgt_df_ss = tgt_df_ss[tgt_df_ss[TARGET_ALL_COL["periode"]].isna() | tgt_df_ss[TARGET_ALL_COL["periode"]].isin(periode_sel)]
+        target_total_ss = tgt_df_ss[TARGET_ALL_COL["target"]].sum()
+
+    team_per_salesman_ss = df_ss_scope.drop_duplicates(subset=[COL["kode_sales"]])[[COL["kode_sales"], "team_simple"]]
+    cb_standpro_ss = int(team_per_salesman_ss["team_simple"].map(lambda tm: STANDAR_TEAM.get(tm, {}).get("CB", 0)).sum())
+    oa_pct_ss = (oa_total_ss / cb_standpro_ss * 100) if cb_standpro_ss else 0
 
     st.write("")
     with st.container(border=True):
         st.markdown("#### 💰 Omzet")
-        net_divisi_ss = net_by_group(df_filtered, ["_divisi_norm"], "Omzet")
+        net_divisi_ss = net_by_group(df_ss_scope, ["_divisi_norm"], "Omzet")
         net_divisi_ss = net_divisi_ss[net_divisi_ss["_divisi_norm"].isin(DIVISI_LABEL.keys())]
         net_divisi_ss["Divisi"] = net_divisi_ss["_divisi_norm"].map(DIVISI_LABEL)
 
         col_all, col_div = st.columns([1, 2])
         with col_all:
-            kpi_card("💰", "Omzet All (Neto)", fmt_rp(pencapaian))
+            kpi_card("💰", "Omzet All (Neto)", fmt_rp(pencapaian_ss))
         with col_div:
             st.dataframe(format_cols(net_divisi_ss[["Divisi", "Omzet"]].sort_values("Omzet", ascending=False),
                                      rp_cols=["Omzet"]), hide_index=True, use_container_width=True, height=180)
@@ -1078,16 +1200,18 @@ with tab_ss:
     st.write("")
     with st.container(border=True):
         st.markdown("#### ⚙️ Productivity")
-        ec_total_ss = int(ringkasan_sales.loc[ringkasan_sales["Salesman"].isin(salesman_terpilih), "EC"].sum())
-        total_lolos_ss = mhs_by_sales_all["Outlet Lolos MHS"].sum() if not mhs_by_sales_all.empty else 0
-        total_cb_ss = mhs_by_sales_all["CB Standar"].dropna().sum() if not mhs_by_sales_all.empty else 0
+        ec_total_ss = int(ringkasan_sales.loc[ringkasan_sales["Salesman"].isin(salesman_filter_ss), "EC"].sum())
+        mhs_resume_ss = hitung_mhs_resume(df_ss_scope)
+        mhs_by_sales_ss = hitung_mhs_by_salesman(mhs_resume_ss, df_ss_scope)
+        total_lolos_ss = mhs_by_sales_ss["Outlet Lolos MHS"].sum() if not mhs_by_sales_ss.empty else 0
+        total_cb_ss = mhs_by_sales_ss["CB Standar"].dropna().sum() if not mhs_by_sales_ss.empty else 0
         pct_mhs_ss = (total_lolos_ss / total_cb_ss * 100) if total_cb_ss else 0
 
         p1, p2, p3 = st.columns(3)
         with p1:
             kpi_card("📞", "EC (akumulasi)", f"{ec_total_ss}")
         with p2:
-            kpi_card("🏪", "OA", f"{oa_total} outlet", f"{oa_pct:.1f}% dari CB Standpro Area")
+            kpi_card("🏪", "OA", f"{oa_total_ss} outlet", f"{oa_pct_ss:.1f}% dari CB Standpro Area ({cb_standpro_ss})")
         with p3:
             kpi_card("📦", "% MHS", fmt_pct(pct_mhs_ss), f"{int(total_lolos_ss)} / {int(total_cb_ss)} CB Standar")
 
@@ -1096,7 +1220,7 @@ with tab_ss:
         st.markdown("#### 🎯 Insentif Sales Supervisor (Skema IBN M245)")
         st.caption("Reward & Punishment (Tagihan, Visit in Radius) tidak dihitung, sama seperti menu Insentif salesman.")
 
-        pct_sales_ss = (pencapaian / target_total * 100) if target_total else np.nan
+        pct_sales_ss = (pencapaian_ss / target_total_ss * 100) if target_total_ss else np.nan
         insentif_sales_ss = tier_lookup(pct_sales_ss, INSENTIF_TIERS_SS["sales"])
 
         detail_kategori_ss = []
@@ -1106,10 +1230,10 @@ with tab_ss:
             net_val = net_val.iloc[0] if not net_val.empty else 0
             tgt_val = 0
             if not target_divisi.empty:
-                t = target_divisi[target_divisi[TARGET_DIVISI_COL["kode_sales"]].isin(kode_sales_scope) &
+                t = target_divisi[target_divisi[TARGET_DIVISI_COL["kode_sales"]].isin(kode_sales_scope_ss) &
                                    (target_divisi["_divisi_norm"] == kode_div)]
                 if periode_sel:
-                    t = t[t[TARGET_DIVISI_COL["periode"]].isin(periode_sel)]
+                    t = t[t[TARGET_DIVISI_COL["periode"]].isna() | t[TARGET_DIVISI_COL["periode"]].isin(periode_sel)]
                 tgt_val = t[TARGET_DIVISI_COL["target"]].sum()
             pct_cat = (net_val / tgt_val * 100) if tgt_val else np.nan
             nilai_cat = tier_lookup(pct_cat, INSENTIF_TIERS_SS["category"])
@@ -1117,7 +1241,7 @@ with tab_ss:
             detail_kategori_ss.append(f"{label_div}: {fmt_pct(pct_cat)} → {fmt_rp(nilai_cat)}")
 
         insentif_mhs_ss = tier_lookup(pct_mhs_ss, INSENTIF_TIERS_SS["mhs"])
-        insentif_oa_ss = tier_lookup(oa_pct, INSENTIF_TIERS_SS["oa"])
+        insentif_oa_ss = tier_lookup(oa_pct_ss, INSENTIF_TIERS_SS["oa"])
         total_insentif_ss = insentif_sales_ss + insentif_kategori_ss + insentif_mhs_ss + insentif_oa_ss
 
         st.markdown(f'<div class="big-nominal">{fmt_rp(total_insentif_ss)}</div>', unsafe_allow_html=True)
@@ -1126,7 +1250,7 @@ with tab_ss:
             "% Capaian Sales": pct_sales_ss, "Insentif Sales": insentif_sales_ss,
             "Insentif Kategori (4 Divisi)": insentif_kategori_ss,
             "% MHS": pct_mhs_ss, "Insentif MHS": insentif_mhs_ss,
-            "% OA": oa_pct, "Insentif OA": insentif_oa_ss,
+            "% OA": oa_pct_ss, "Insentif OA": insentif_oa_ss,
             "Total Insentif": total_insentif_ss,
         }])
         st.dataframe(format_cols(tbl_ss, rp_cols=["Insentif Sales", "Insentif Kategori (4 Divisi)", "Insentif MHS",

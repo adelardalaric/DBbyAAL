@@ -50,9 +50,18 @@ tetap simpan file asli kamu di tempat lain sebagai cadangan.
 file sekaligus (tahun dideteksi otomatis dari `Tanggal Faktur`), kolom:
 `No Outlet, Nama Outlet, Grup Outlet, Tipe Outlet, KG, Tanggal Faktur, Faktur, TRANSTYPE, Kode Sales, Pcode, Nama Produk, Kemasan, QTYPCS, AMOUNT, Harga Bruto, DISC, DISC1KH, PROAMOUNT, Total, XQTYPCS, Channel, Alamat, Kabupaten, Kecamatan, Kelurahan, Divisi, WEEK, Periode, Kode Pasar, Salesman, Salesforce, Sales Team, CALLCYCLE, Hari Kunjungan, Kredit Limit, SUBBRAND, SUBBRANDNAME`
 
-**File Target (.xlsx)** — 2 sheet:
-- `Target All`: `Kode Sales`, `Periode`, `Target`
-- `Target Divisi`: `Kode Sales`, `Periode`, `Divisi`, `Target`
+**File Target (.xlsx)** — 2 sheet, nama & kolom fleksibel (parser cocokkan
+otomatis, tidak case-sensitive):
+- Sheet target keseluruhan (nama mengandung "TARGET ALL"): butuh kolom yang
+  mengandung kata "KODE" (untuk Kode Sales) dan "TARGET". Kolom "PERIODE"
+  opsional — kalau tidak ada, target dianggap berlaku untuk periode berapa
+  pun yang sedang difilter (cocok untuk file bulanan seperti
+  `FILE_TARGET_SEP.xlsx`, sudah ditest).
+- Sheet target per divisi (nama mengandung "TARGET DIVISI"): butuh kolom
+  "KODE...", lalu boleh format LEBAR (satu kolom per divisi, mis.
+  `5 - COFFE`, `6 - CEREAL`, `8 - INSTANT FOOD`, `16 - HOME CARE` — kode
+  divisi diambil dari angka sebelum tanda "-") ATAU format PANJANG (kolom
+  "DIVISI" + "TARGET" terpisah). Kolom "PERIODE" juga opsional di sini.
 
 **File DMP (.txt)** — pipe-delimited, dipakai untuk kolom Rayon. Minimal
 butuh `KODEOUTLET`, `RAYON`, `SALESMAN`, `LASTUPDATE`.
