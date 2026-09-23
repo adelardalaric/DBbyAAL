@@ -101,6 +101,35 @@ butuh `KODEOUTLET`, `RAYON`, `SALESMAN`, `LASTUPDATE`.
   lengkap).
 - Semua angka penjualan → teks `Rp 123,456,789`; kalau datanya belum ada
   (target/gap belum diupload) → tampil `-`, bukan `Rp nan`.
+- **HKE (Hari Kerja Efektif)** sekarang jadi pembagi Gap Harian di semua
+  menu (bukan HKA lagi). HKA tetap ada sebagai field terpisah di sidebar
+  tapi untuk saat ini tidak dipakai di perhitungan manapun.
+- **Dedup SKU produk WOW**: khusus produk yang namanya mengandung "WOW",
+  varian kemasan/ukuran (mis. "GB" vs "10X(4+2)") DIBUANG dari kunci
+  dedup-nya — jadi "WOW SPAGETI CARBONARA GB" dan "WOW SPAGETI CARBONARA
+  10X(4+2)" dihitung 1 SKU. Sudah divalidasi ke data asli: dari 129 Pcode
+  unik, 4 pasangan berhasil digabung (Goreng, Carbonara, Bolognese, Aglio
+  Olio) jadi 125 SKU unik — sementara "Carbonara" tetap terpisah dari
+  "Creamy Carbonara" (flavor beda, sengaja tidak digabung). Produk NON-WOW
+  tidak kena aturan ini — kemasan tetap jadi pembeda SKU seperti biasa.
+- **Menu SKU Sold (dulu "Must Have SKU")**: target SKU sekarang diambil
+  dari klasifikasi channel di **DMP** (kolom NAMACLASS, Supermarket dari
+  NAMACHANNEL) sesuai Memorandum Revisi 27 Agustus 2026 — BUKAN lagi dari
+  Tipe Outlet di LBP. 9 kategori: Kantin(5), Warduh(5), Kios(7), Retail
+  Large(10), Grosir Snack(10), Grosir Kelontong(15), Grosir Modern(15),
+  Minimarket(20), Supermarket(25). Divalidasi: outlet "#AINI***/K." di DMP
+  asli persis berklasifikasi "GROSIR KELONTONG" seperti contoh yang kamu
+  kasih. Tier insentifnya juga berubah dari 60/70/80/90% jadi 50/60/70/80%
+  — **nominal Rp per tier saya PERTAHANKAN sama seperti skema asli** karena
+  memo revisi tidak menyebutkan perubahan nominal, cuma perubahan range &
+  klasifikasi channel. Tolong dikonfirmasi kalau nominalnya ternyata ikut
+  berubah.
+- **Menu LATO**: sumber datanya adalah **DMP** (bukan LBP), supaya outlet
+  yang belum pernah transaksi tetap ikut tampil (ditandai baris merah
+  "BELUM ADA TRANSAKSI"). Kalau file DMP belum diupload, menu ini tidak
+  bisa dipakai. Nominal transaksi mengikuti filter Periode/Week yang aktif
+  di sidebar.
+- **Menu Paretto**: baru placeholder, "akan dikembangkan lebih lanjut".
 
 ### Bug penting yang sudah diperbaiki (dari update sebelumnya, masih berlaku)
 
@@ -110,3 +139,11 @@ butuh `KODEOUTLET`, `RAYON`, `SALESMAN`, `LASTUPDATE`.
    Bruto R` (bukan `F - R`), karena R sudah membawa tanda minus sendiri.
    Sudah diverifikasi ke seluruh data: Bruto F = Rp 5.010.609.612, Retur =
    Rp 123.645.763 → Pencapaian benar = Rp 4.886.963.849.
+3. **Crash FileNotFoundError saat pakai "file yang sudah pernah diupload"**
+   — akar masalahnya, Streamlit sempat mencoba membaca nama file yang saya
+   tempelkan ke objek `BytesIO` seolah itu path asli di disk (lewat
+   `os.path.getmtime`), padahal itu cuma nama file biasa — jadi crash kalau
+   nama itu tidak match path relatif ke direktori kerja. Sudah diperbaiki
+   dengan cara membaca file jadi `bytes` mentah dan mengirim `bytes` + nama
+   sebagai argumen terpisah ke fungsi-fungsi loader, bukan objek file-like
+   — pendekatan ini juga lebih cepat untuk caching Streamlit.

@@ -52,13 +52,47 @@ COL = {
 }
 TARGET_ALL_COL = {"kode_sales": "Kode Sales", "periode": "Periode", "target": "Target"}
 TARGET_DIVISI_COL = {"kode_sales": "Kode Sales", "periode": "Periode", "divisi": "Divisi", "target": "Target"}
-DMP_COL = {"outlet": "KODEOUTLET", "rayon": "RAYON", "salesman": "SALESMAN", "lastupdate": "LASTUPDATE"}
+DMP_COL = {"outlet": "KODEOUTLET", "nama_outlet": "NAMAOUTLET", "rayon": "RAYON", "salesman": "SALESMAN",
+           "lastupdate": "LASTUPDATE", "namaclass": "NAMACLASS", "namachannel": "NAMACHANNEL"}
 
 STANDAR_TEAM = {
     "TO-Retail": {"CB": 300, "EC": 20, "IPT": 6},
     "TO-Grosir": {"CB": 90, "EC": 12, "IPT": 10},
 }
-TARGET_SKU_MHS = {"111": 7, "113": 10, "114": 15, "115": 15, "105": 20, "109": 20, "110": 20, "116": 20}
+# Target SKU per klasifikasi channel — DARI MEMORANDUM REVISI 27 AGUSTUS 2026,
+# diambil dari kolom NAMACLASS (dan NAMACHANNEL khusus Supermarket) di DMP,
+# BUKAN lagi dari Tipe Outlet di LBP. Kriteria ini sekarang bernama "SKU Sold"
+# (dulu "Must Have SKU by Channel").
+TARGET_SKU_BY_CLASS = {
+    "Kantin": 5, "Warduh": 5, "Kios": 7, "Retail Large": 10, "Grosir Snack": 10,
+    "Grosir Kelontong": 15, "Grosir Modern": 15, "Minimarket": 20, "Supermarket": 25,
+}
+
+
+def classify_channel_memo(namaclass, namachannel) -> str | None:
+    """Klasifikasi channel sesuai Memorandum 27 Agustus 2026. Divalidasi ke DMP
+    asli: outlet '#AINI***/K.' -> NAMACLASS 'GROSIR KELONTONG' -> Grosir Kelontong."""
+    nc = str(namaclass).strip().upper()
+    nch = str(namachannel).strip().upper()
+    if "KANTIN" in nc:
+        return "Kantin"
+    if "WARDUH" in nc:
+        return "Warduh"
+    if nc == "RETAIL KIOS":
+        return "Kios"
+    if nc == "RETAIL LARGE":
+        return "Retail Large"
+    if nc == "GROSIR SNACK":
+        return "Grosir Snack"
+    if nc == "GROSIR KELONTONG":
+        return "Grosir Kelontong"
+    if nc == "GROSIR MODERN":
+        return "Grosir Modern"
+    if nc == "MINIMARKET":
+        return "Minimarket"
+    if "SUPERMARKET" in nch:
+        return "Supermarket"
+    return None
 TIPE_OUTLET_LABEL = {
     "111": "111 - Retail Small", "113": "113 - Retail Large", "114": "114 - Semi Grosir",
     "118": "118 - Kantin", "146": "146 - MUH", "115": "115 - Grosir",
@@ -67,19 +101,24 @@ TIPE_OUTLET_LABEL = {
 }
 DIVISI_LABEL = {"5": "Coffee", "6": "Cereal", "8": "Instant Food", "16": "Homecare"}
 
-# Skema insentif M245 (Agustus-September 2026) dari PDF TO-Retail & TO-Grosir.
+# Skema insentif M245 (Agustus-September 2026) dari PDF TO-Retail & TO-Grosir,
+# dengan kriteria "SKU Sold" (dulu "Must Have SKU by Channel") sudah disesuaikan
+# ke Memorandum Revisi 27 Agustus 2026 — batas persentase turun jadi 50/60/70/80
+# (dari 60/70/80/90). Nominal Rp-nya TETAP sama seperti skema asli karena memo
+# revisi tidak menyebutkan perubahan nominal, cuma perubahan range & klasifikasi
+# channel — tolong dikonfirmasi kalau nominalnya ternyata ikut berubah.
 # Setiap list: (persentase minimum, nominal Rp). Reward & Punishment TIDAK dipakai.
 INSENTIF_TIERS = {
     "TO-Retail": {
         "sales": [(90, 500_000), (95, 650_000), (100, 1_000_000), (110, 1_400_000)],
         "category": [(90, 75_000), (95, 100_000), (100, 150_000), (110, 250_000)],
-        "mhs": [(60, 500_000), (70, 650_000), (80, 1_000_000), (90, 1_400_000)],
+        "mhs": [(50, 500_000), (60, 650_000), (70, 1_000_000), (80, 1_400_000)],
         "oa": [(90, 300_000), (95, 600_000), (100, 1_000_000)],
     },
     "TO-Grosir": {
         "sales": [(90, 600_000), (95, 800_000), (100, 1_200_000), (110, 1_800_000)],
         "category": [(90, 100_000), (95, 150_000), (100, 200_000), (110, 300_000)],
-        "mhs": [(60, 600_000), (70, 800_000), (80, 1_200_000), (90, 1_800_000)],
+        "mhs": [(50, 600_000), (60, 800_000), (70, 1_200_000), (80, 1_800_000)],
         "oa": [(90, 400_000), (95, 800_000), (100, 1_200_000)],
     },
 }
@@ -87,7 +126,7 @@ INSENTIF_TIERS = {
 INSENTIF_TIERS_SS = {
     "sales": [(90, 800_000), (95, 1_100_000), (100, 1_600_000), (110, 2_350_000)],
     "category": [(90, 125_000), (95, 170_000), (100, 250_000), (110, 400_000)],
-    "mhs": [(60, 800_000), (70, 1_100_000), (80, 1_600_000), (90, 2_350_000)],
+    "mhs": [(50, 800_000), (60, 1_100_000), (70, 1_600_000), (80, 2_350_000)],
     "oa": [(90, 500_000), (95, 1_000_000), (100, 1_500_000)],
 }
 
@@ -167,15 +206,17 @@ def compare_badge(curr, prev) -> str:
 # 2. LOAD DATA
 # =====================================================================
 @st.cache_data(show_spinner="Memproses file LBP...")
-def load_lbp(file) -> pd.DataFrame:
-    name = file.name.lower()
+def load_lbp(file_bytes: bytes, file_name: str) -> pd.DataFrame:
+    from io import BytesIO
+    name = file_name.lower()
+    buf = BytesIO(file_bytes)
     if name.endswith(".txt") or name.endswith(".csv"):
         # index_col=False WAJIB: file LBP punya trailing "|" di akhir tiap baris,
         # tanpa ini pandas salah mengira kolom pertama adalah index dan semua
         # kolom lain geser satu posisi.
-        df = pd.read_csv(file, sep="|", dtype=str, engine="python", index_col=False)
+        df = pd.read_csv(buf, sep="|", dtype=str, engine="python", index_col=False)
     else:
-        df = pd.read_excel(file, dtype=str)
+        df = pd.read_excel(buf, dtype=str)
     df.columns = [c.strip() for c in df.columns]
 
     for c in [COL["qty"], COL["bruto"], COL["week"], COL["periode"]]:
@@ -197,9 +238,18 @@ def load_lbp(file) -> pd.DataFrame:
     df["team_simple"] = df[COL["salesforce"]].apply(classify_team)
     df["_divisi_norm"] = df[COL["divisi"]].astype(str).str.strip().apply(lambda x: x.lstrip("0") or "0")
 
+    # Token kemasan/ukuran yang dibuang KHUSUS untuk produk WOW, supaya varian
+    # kemasan (mis. "GB" vs "4+2"/RCG) dihitung sebagai SKU yang sama — special
+    # case khusus WOW sesuai instruksi. Untuk produk lain, angka ukuran/kemasan
+    # TETAP dipertahankan sebagai pembeda SKU.
+    WOW_PACKAGING_TOKENS = {"GB", "RCG", "RC", "PC", "PCS", "BOX", "BND", "SCH", "CAR"}
+
     def normalize_product_name(name: str) -> str:
         s = str(name).upper()
         s = re.sub(r"\bNEW\b", "", s)
+        if "WOW" in s:
+            s = re.split(r"\d", s, maxsplit=1)[0]  # buang semua setelah digit pertama (kode kemasan/ukuran)
+            s = " ".join(t for t in s.split() if t not in WOW_PACKAGING_TOKENS)
         s = re.sub(r"[^A-Z0-9]+", " ", s)
         return re.sub(r"\s+", " ", s).strip()
 
@@ -224,14 +274,15 @@ def _find_col(columns, must_contain: list, must_not_contain: list = ()) -> str |
 
 
 @st.cache_data(show_spinner="Memproses file target...")
-def load_target(file):
+def load_target(file_bytes: bytes):
+    from io import BytesIO
     empty_all = pd.DataFrame(columns=["Kode Sales", "Periode", "Target"])
     empty_divisi = pd.DataFrame(columns=["Kode Sales", "Periode", "Divisi", "Target", "_divisi_norm"])
-    if file is None:
+    if file_bytes is None:
         return empty_all, empty_divisi
 
     try:
-        xls = pd.ExcelFile(file)
+        xls = pd.ExcelFile(BytesIO(file_bytes))
     except Exception:
         return empty_all, empty_divisi
 
@@ -302,15 +353,20 @@ def load_target(file):
     return target_all, target_divisi
 
 
-@st.cache_data(show_spinner="Memproses file DMP (Rayon)...")
-def load_dmp(file) -> pd.DataFrame:
-    df = pd.read_csv(file, sep="|", dtype=str, engine="python", index_col=False)
+@st.cache_data(show_spinner="Memproses file DMP...")
+def load_dmp(file_bytes: bytes) -> pd.DataFrame:
+    from io import BytesIO
+    df = pd.read_csv(BytesIO(file_bytes), sep="|", dtype=str, engine="python", index_col=False)
     df.columns = [c.strip() for c in df.columns]
     df = df[df[DMP_COL["rayon"]].notna() & (df[DMP_COL["rayon"]].astype(str).str.strip() != "")]
     df = df[~df[DMP_COL["salesman"]].astype(str).str.upper().str.contains("VACANT", na=False)]
     df["_lastupdate_dt"] = pd.to_datetime(df[DMP_COL["lastupdate"]], format="%d/%m/%Y", errors="coerce")
     df = df.sort_values("_lastupdate_dt", ascending=False).drop_duplicates(subset=[DMP_COL["outlet"]], keep="first")
-    return df[[DMP_COL["outlet"], DMP_COL["rayon"]]].rename(columns={DMP_COL["outlet"]: COL["outlet"], DMP_COL["rayon"]: "Rayon"})
+    df["Kategori Channel"] = df.apply(
+        lambda r: classify_channel_memo(r.get(DMP_COL["namaclass"]), r.get(DMP_COL["namachannel"])), axis=1)
+    out = df[[DMP_COL["outlet"], DMP_COL["nama_outlet"], DMP_COL["salesman"], DMP_COL["rayon"], "Kategori Channel"]]
+    return out.rename(columns={DMP_COL["outlet"]: COL["outlet"], DMP_COL["nama_outlet"]: "Nama Outlet (DMP)",
+                                DMP_COL["salesman"]: "Salesman", DMP_COL["rayon"]: "Rayon"})
 
 
 def to_excel_bytes(df: pd.DataFrame) -> bytes:
@@ -463,21 +519,23 @@ def format_cols(df: pd.DataFrame, rp_cols=(), pct_cols=()) -> pd.DataFrame:
     return out
 
 
-def universe_sku_per_tipe_outlet(df_f: pd.DataFrame) -> dict:
+def universe_sku_per_kategori(df_f: pd.DataFrame) -> dict:
     """Proxy 'master SKU': semua SKU (dedup nama produk ternormalisasi) yang pernah
-    laku di tiap Tipe Outlet dalam data yang sedang difilter."""
+    laku di tiap Kategori Channel (dari DMP) dalam data yang sedang difilter."""
     universe = {}
-    for tipe, g in df_f.groupby(COL["tipe_outlet"]):
-        universe[tipe] = g.drop_duplicates(subset=["_produk_norm"])[[COL["pcode"], COL["nama_produk"], "_produk_norm"]]
+    for kategori, g in df_f.groupby("Kategori Channel"):
+        universe[kategori] = g.drop_duplicates(subset=["_produk_norm"])[[COL["pcode"], COL["nama_produk"], "_produk_norm"]]
     return universe
 
 
 def hitung_mhs_resume(df_scope: pd.DataFrame) -> pd.DataFrame:
     f_only = df_scope[df_scope[COL["transtype"]] == "F"]
-    sku_terjual = f_only.groupby([COL["outlet"], COL["nama_outlet"], COL["kode_sales"], COL["salesman"],
-                                   COL["channel"], COL["tipe_outlet"]])["_produk_norm"] \
-        .nunique().reset_index(name="SKU Terjual")
-    sku_terjual["Target SKU"] = sku_terjual[COL["tipe_outlet"]].map(TARGET_SKU_MHS)
+    group_cols = [COL["outlet"], COL["nama_outlet"], COL["kode_sales"], COL["salesman"],
+                  COL["channel"], "Kategori Channel"]
+    if "Rayon" in f_only.columns:
+        group_cols.append("Rayon")
+    sku_terjual = f_only.groupby(group_cols)["_produk_norm"].nunique().reset_index(name="SKU Terjual")
+    sku_terjual["Target SKU"] = sku_terjual["Kategori Channel"].map(TARGET_SKU_BY_CLASS)
     sku_terjual["Kekurangan SKU"] = (sku_terjual["Target SKU"] - sku_terjual["SKU Terjual"]).clip(lower=0)
     sku_terjual["Lolos MHS"] = sku_terjual["SKU Terjual"] >= sku_terjual["Target SKU"]
     return sku_terjual.dropna(subset=["Target SKU"]).rename(
@@ -603,24 +661,21 @@ with st.sidebar:
             if pilih_dmp != "(tidak pakai)":
                 dmp_file = os.path.join(SAVED_DIR, SAVED_SUBDIRS["dmp"], pilih_dmp)
 
-def _as_file_obj(file):
-    """Path string (file lama yang disimpan) -> BytesIO dengan .name, supaya
-    load_lbp/load_target/load_dmp bisa perlakukan sama seperti UploadedFile,
-    dan cache Streamlit key-nya berdasarkan ISI file (bukan sekadar nama).
-    Return None kalau file-nya ternyata sudah tidak ada di server (mis. habis
-    container di-restart) — dibiarkan gagal dengan sopan, bukan crash total."""
+def _read_bytes_and_name(file):
+    """UploadedFile atau path string (file lama yang disimpan) -> (bytes, nama).
+    Cache Streamlit di-key dari BYTES mentah (primitif aman), bukan dari
+    objek file-like — ini yang menghindari bug lama: Streamlit sempat mencoba
+    mem-vstat nama file sebagai path asli lewat os.path.getmtime dan crash
+    kalau nama itu bukan path yang valid relatif ke direktori kerja.
+    Return (None, None) kalau file lama ternyata sudah hilang dari server."""
     if isinstance(file, str):
-        from io import BytesIO
         if not os.path.exists(file):
             st.warning(f"File '{os.path.basename(file)}' yang tersimpan sebelumnya sudah tidak ada di server "
                        "(kemungkinan app sempat di-restart) — silakan upload ulang file ini.")
-            return None
+            return None, None
         with open(file, "rb") as f:
-            data = f.read()
-        buf = BytesIO(data)
-        buf.name = os.path.basename(file)
-        return buf
-    return file
+            return f.read(), os.path.basename(file)
+    return file.getvalue(), file.name
 
 
 if not lbp_files:
@@ -629,10 +684,10 @@ if not lbp_files:
 
 lbp_by_year: dict[int, pd.DataFrame] = {}
 for f in lbp_files:
-    f_obj = _as_file_obj(f)
-    if f_obj is None:
+    f_bytes, f_name = _read_bytes_and_name(f)
+    if f_bytes is None:
         continue
-    d = load_lbp(f_obj)
+    d = load_lbp(f_bytes, f_name)
     for y, g in d.groupby(d[COL["tanggal"]].dt.year.dropna().astype(int)):
         lbp_by_year[y] = pd.concat([lbp_by_year.get(y, pd.DataFrame()), g], ignore_index=True)
 
@@ -640,19 +695,23 @@ if not lbp_by_year:
     st.error("Tidak ada data LBP yang berhasil dimuat. Silakan upload ulang file LBP.")
     st.stop()
 
-_target_file_obj = _as_file_obj(target_file) if target_file is not None else None
-target_all, target_divisi = load_target(_target_file_obj) if _target_file_obj is not None else (
+_target_bytes, _ = _read_bytes_and_name(target_file) if target_file is not None else (None, None)
+target_all, target_divisi = load_target(_target_bytes) if _target_bytes is not None else (
     pd.DataFrame(columns=[TARGET_ALL_COL["kode_sales"], TARGET_ALL_COL["periode"], TARGET_ALL_COL["target"]]),
     pd.DataFrame(columns=[TARGET_DIVISI_COL["kode_sales"], TARGET_DIVISI_COL["periode"],
                            TARGET_DIVISI_COL["divisi"], TARGET_DIVISI_COL["target"], "_divisi_norm"]))
 
-_dmp_file_obj = _as_file_obj(dmp_file) if dmp_file is not None else None
-rayon_map = load_dmp(_dmp_file_obj) if _dmp_file_obj is not None else pd.DataFrame(columns=[COL["outlet"], "Rayon"])
+_dmp_bytes, _ = _read_bytes_and_name(dmp_file) if dmp_file is not None else (None, None)
+dmp_master = load_dmp(_dmp_bytes) if _dmp_bytes is not None else pd.DataFrame(
+    columns=[COL["outlet"], "Nama Outlet (DMP)", "Salesman", "Rayon", "Kategori Channel"])
+rayon_channel_map = dmp_master[[COL["outlet"], "Rayon", "Kategori Channel"]] if not dmp_master.empty else pd.DataFrame(
+    columns=[COL["outlet"], "Rayon", "Kategori Channel"])
 for y in lbp_by_year:
-    if not rayon_map.empty:
-        lbp_by_year[y] = lbp_by_year[y].merge(rayon_map, on=COL["outlet"], how="left")
+    if not rayon_channel_map.empty:
+        lbp_by_year[y] = lbp_by_year[y].merge(rayon_channel_map, on=COL["outlet"], how="left")
     else:
         lbp_by_year[y]["Rayon"] = np.nan
+        lbp_by_year[y]["Kategori Channel"] = np.nan
 
 available_years = sorted(lbp_by_year.keys())
 
@@ -761,10 +820,10 @@ ringkasan_sales = ringkasan_by_salesman(df_filtered, target_all, periode_sel, hk
 mhs_resume_all = hitung_mhs_resume(df_filtered)
 mhs_by_sales_all = hitung_mhs_by_salesman(mhs_resume_all, df_filtered)
 
-(tab_overview, tab_sales, tab_wilayah, tab_subbrand, tab_mhs, tab_insentif,
- tab_ltdnpl, tab_ss, tab_readme) = st.tabs(
+(tab_overview, tab_sales, tab_wilayah, tab_subbrand, tab_mhs, tab_insentif, tab_lato,
+ tab_ltdnpl, tab_paretto, tab_ss, tab_readme) = st.tabs(
     ["📊 Overview", "🧑‍💼 By Salesman", "🗺️ By Wilayah", "🏷️ By Subbrand & Divisi",
-     "📦 MHS", "🎯 Insentif", "🆕 LTD NPL", "📈 Performance SS", "📖 Read Me"]
+     "📦 MHS", "🎯 Insentif", "📋 LATO", "🆕 LTD NPL", "📐 Paretto", "📈 Performance SS", "📖 Read Me"]
 )
 
 # ---------------------------------------------------------------- Overview
@@ -973,9 +1032,11 @@ with tab_subbrand:
 # ---------------------------------------------------------------- MHS
 with tab_mhs:
     with st.container(border=True):
-        st.markdown("#### 📦 MHS — SKU Masuk vs Target SKU")
-        st.caption("SKU dihitung dari NAMA PRODUK yang sudah dinormalisasi (buang kata 'NEW', spasi, kapitalisasi) "
-                   "supaya produk yang sama dengan Pcode berbeda tidak dihitung dobel.")
+        st.markdown("#### 📦 MHS — SKU Sold vs Target SKU")
+        st.caption("SKU dihitung dari NAMA PRODUK yang sudah dinormalisasi (buang kata 'NEW', spasi, kapitalisasi; "
+                   "khusus produk WOW, varian kemasan seperti GB vs 4+2/RCG juga digabung jadi 1 SKU). Target SKU "
+                   "sekarang diambil dari klasifikasi channel di DMP (NAMACLASS), sesuai Memorandum 27 Agustus 2026 "
+                   "— bukan lagi dari Tipe Outlet di LBP.")
         colf1, colf2 = st.columns(2)
         with colf1:
             salesman_mhs = st.multiselect("Filter salesman", salesman_terpilih, default=salesman_terpilih, key="mhs_salesman_filter")
@@ -988,14 +1049,12 @@ with tab_mhs:
             df_mhs_scope = df_mhs_scope[df_mhs_scope["Rayon"].isin(rayon_mhs)] if rayon_mhs else df_mhs_scope.iloc[0:0]
 
         tampil = hitung_mhs_resume(df_mhs_scope)
-        tampil_with_rayon = tampil.merge(rayon_map, left_on="No Outlet", right_on=COL["outlet"], how="left") if not rayon_map.empty else tampil
-        if "Rayon" not in tampil_with_rayon.columns:
-            tampil_with_rayon["Rayon"] = np.nan
+        tampil_with_rayon = tampil
 
         colL, colR = st.columns([1.5, 1])
         with colL:
-            kolom_mhs = ["No Outlet", "Nama Outlet", "Salesman", "Rayon", "Channel", "Target SKU",
-                         "SKU Terjual", "Kekurangan SKU"]
+            kolom_mhs = ["No Outlet", "Nama Outlet", "Salesman", "Rayon", "Kategori Channel", "Channel",
+                         "Target SKU", "SKU Terjual", "Kekurangan SKU"]
             kolom_mhs = [c for c in kolom_mhs if c in tampil_with_rayon.columns]
             st.dataframe(tampil_with_rayon[kolom_mhs], hide_index=True, use_container_width=True, height=380)
             download_button(tampil_with_rayon, "Download Excel (MHS Resume)", "mhs_resume.xlsx", "dl_mhs")
@@ -1028,9 +1087,9 @@ with tab_mhs:
             outlet_pilihan = st.selectbox("Pilih outlet", tampil["No Outlet"] + " - " + tampil["Nama Outlet"])
             no_outlet_sel = outlet_pilihan.split(" - ")[0]
             f_only_mhs = df_mhs_scope[df_mhs_scope[COL["transtype"]] == "F"]
-            tipe_outlet_sel = f_only_mhs.loc[f_only_mhs[COL["outlet"]] == no_outlet_sel, COL["tipe_outlet"]].iloc[0]
-            universe = universe_sku_per_tipe_outlet(f_only_mhs)
-            semua_sku_tipe = universe.get(tipe_outlet_sel, pd.DataFrame(columns=[COL["pcode"], COL["nama_produk"], "_produk_norm"]))
+            kategori_sel = f_only_mhs.loc[f_only_mhs[COL["outlet"]] == no_outlet_sel, "Kategori Channel"].iloc[0]
+            universe = universe_sku_per_kategori(f_only_mhs)
+            semua_sku_tipe = universe.get(kategori_sel, pd.DataFrame(columns=[COL["pcode"], COL["nama_produk"], "_produk_norm"]))
             sku_outlet = f_only_mhs.loc[f_only_mhs[COL["outlet"]] == no_outlet_sel].drop_duplicates(subset=["_produk_norm"])[
                 [COL["pcode"], COL["nama_produk"], COL["qty"], COL["bruto"]]]
 
@@ -1039,7 +1098,7 @@ with tab_mhs:
                 st.markdown("**✅ SKU sudah masuk**")
                 st.dataframe(sku_outlet, hide_index=True, use_container_width=True, height=300)
             with cR:
-                st.markdown("**⚠️ SKU belum masuk** (vs SKU lain yang laku di Tipe Outlet sejenis)")
+                st.markdown(f"**⚠️ SKU belum masuk** (vs SKU lain yang laku di kategori '{kategori_sel}')")
                 sudah_norm = f_only_mhs.loc[f_only_mhs[COL["outlet"]] == no_outlet_sel, "_produk_norm"]
                 belum_masuk = semua_sku_tipe[~semua_sku_tipe["_produk_norm"].isin(sudah_norm)][[COL["pcode"], COL["nama_produk"]]]
                 st.dataframe(belum_masuk, hide_index=True, use_container_width=True, height=300)
@@ -1149,11 +1208,63 @@ with tab_insentif:
             download_button(tbl_insentif.drop(columns=["Detail Kategori"]), "Download Excel (Insentif)",
                              "insentif.xlsx", "dl_insentif")
 
+# ---------------------------------------------------------------- LATO
+with tab_lato:
+    with st.container(border=True):
+        st.markdown("#### 📋 LATO — List Outlet & Transaksi")
+        st.caption("Semua outlet yang terdaftar di DMP untuk salesman/rayon yang difilter — BUKAN cuma outlet "
+                   "yang sudah transaksi. Outlet yang belum ada transaksi (sesuai filter Periode/Week yang aktif "
+                   "di sidebar) ditandai baris merah, supaya gampang dicek atau dibagikan ke salesman.")
+
+        if dmp_master.empty:
+            st.warning("Upload file DMP di sidebar (⚙️ Option) dulu untuk memakai menu ini — LATO butuh daftar "
+                       "outlet lengkap dari DMP, bukan cuma yang sudah transaksi di LBP.")
+        else:
+            cf1, cf2 = st.columns(2)
+            with cf1:
+                salesman_lato = st.multiselect("Filter salesman", salesman_terpilih, default=salesman_terpilih,
+                                                key="lato_salesman_filter")
+            with cf2:
+                rayon_lato_opts = sorted(dmp_master.loc[dmp_master["Salesman"].isin(salesman_lato), "Rayon"].dropna().unique().tolist())
+                rayon_lato = st.multiselect("Filter Rayon", rayon_lato_opts, default=rayon_lato_opts, key="lato_rayon_filter")
+
+            master_lato = dmp_master[dmp_master["Salesman"].isin(salesman_lato)] if salesman_lato else dmp_master.iloc[0:0]
+            if rayon_lato_opts:
+                master_lato = master_lato[master_lato["Rayon"].isin(rayon_lato)] if rayon_lato else master_lato.iloc[0:0]
+
+            net_outlet = net_by_group(df_filtered, [COL["outlet"]], "Omzet")
+            tbl_lato = master_lato.merge(net_outlet[[COL["outlet"], "Omzet"]], on=COL["outlet"], how="left")
+            tbl_lato["Omzet"] = tbl_lato["Omzet"].fillna(0)
+            tbl_lato["Nominal Transaksi"] = tbl_lato["Omzet"].apply(lambda x: fmt_rp(x) if x > 0 else "BELUM ADA TRANSAKSI")
+            tbl_lato = tbl_lato.rename(columns={"Nama Outlet (DMP)": "Nama Outlet"})
+            tbl_lato = tbl_lato[["Salesman", "Rayon", COL["outlet"], "Nama Outlet", "Nominal Transaksi", "Omzet"]] \
+                .sort_values(["Salesman", "Omzet"])
+
+            n_belum = int((tbl_lato["Omzet"] <= 0).sum())
+            st.caption(f"{len(tbl_lato)} outlet ditampilkan &middot; {n_belum} outlet BELUM ada transaksi "
+                       f"(sesuai filter Periode/Week yang aktif).")
+
+            def _highlight_belum(row):
+                if row["Omzet"] <= 0:
+                    return ["background-color: #7f1d1d; color: #FCA5A5"] * len(row)
+                return [""] * len(row)
+
+            display_cols = ["Salesman", "Rayon", COL["outlet"], "Nama Outlet", "Nominal Transaksi"]
+            styled = tbl_lato[display_cols + ["Omzet"]].style.apply(_highlight_belum, axis=1).hide(axis="columns", subset=["Omzet"])
+            st.dataframe(styled, hide_index=True, use_container_width=True, height=460)
+            download_button(tbl_lato[display_cols], "Download Excel (LATO)", "lato.xlsx", "dl_lato")
+
 # ---------------------------------------------------------------- LTD NPL
 with tab_ltdnpl:
     with st.container(border=True):
         st.markdown("#### 🆕 LTD NPL")
         st.info("Menu ini akan dikembangkan lebih lanjut setelah definisi rumus LTD NPL dikonfirmasi.")
+
+# ---------------------------------------------------------------- Paretto
+with tab_paretto:
+    with st.container(border=True):
+        st.markdown("#### 📐 Paretto")
+        st.info("Menu ini akan dikembangkan lebih lanjut.")
 
 # ---------------------------------------------------------------- Performance SS
 with tab_ss:
@@ -1270,10 +1381,12 @@ with tab_readme:
 
     st.write("")
     with st.container(border=True):
-        st.markdown("#### 📖 Target SKU per Tipe Outlet (acuan MHS)")
+        st.markdown("#### 📖 Target SKU per Klasifikasi Channel (acuan SKU Sold) — Memorandum 27 Agustus 2026")
+        st.caption("Klasifikasi diambil dari kolom NAMACLASS di file DMP (Supermarket dari NAMACHANNEL). "
+                   "Outlet yang tidak masuk 9 kategori ini tidak dihitung ke SKU Sold.")
         df_sku_std = pd.DataFrame(
-            [{"Tipe Outlet": TIPE_OUTLET_LABEL.get(k, k), "Target SKU": v} for k, v in TARGET_SKU_MHS.items()]
-        )
+            [{"Kategori Channel": k, "Target SKU": v} for k, v in TARGET_SKU_BY_CLASS.items()]
+        ).sort_values("Target SKU")
         st.dataframe(df_sku_std, hide_index=True)
 
     st.write("")
@@ -1292,7 +1405,7 @@ with tab_readme:
             st.markdown(f"**{team}**")
             df_show = pd.DataFrame({
                 "Kriteria": ["Sales M245"] * len(tiers["sales"]) + ["Sales per Kategori (x4 Divisi)"] * len(tiers["category"]) +
-                            ["Must Have SKU"] * len(tiers["mhs"]) + ["Outlet Active"] * len(tiers["oa"]),
+                            ["SKU Sold"] * len(tiers["mhs"]) + ["Outlet Active"] * len(tiers["oa"]),
                 "Min. %": [t[0] for t in tiers["sales"]] + [t[0] for t in tiers["category"]] +
                           [t[0] for t in tiers["mhs"]] + [t[0] for t in tiers["oa"]],
                 "Nominal": [fmt_rp(t[1]) for t in tiers["sales"]] + [fmt_rp(t[1]) for t in tiers["category"]] +
