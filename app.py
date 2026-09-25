@@ -1116,10 +1116,10 @@ with tab_mhs:
 
     st.write("")
     with st.container(border=True):
-        st.markdown("#### 📈 % MHS Keseluruhan (vs CB Standpro Read Me)")
+        st.markdown("#### 📈 % MHS Keseluruhan (vs Jumlah Outlet DMP)")
         mhs_by_sales = hitung_mhs_by_salesman(tampil, df_mhs_scope, outlet_count_dmp)
         total_lolos = mhs_by_sales["Outlet Lolos MHS"].sum() if not mhs_by_sales.empty else 0
-        total_cb = mhs_by_sales["CB Standar"].dropna().sum() if not mhs_by_sales.empty else 0
+        total_cb = mhs_by_sales["Jumlah Outlet (DMP)"].dropna().sum() if not mhs_by_sales.empty else 0
         pct_mhs_overall = (total_lolos / total_cb * 100) if total_cb else 0
         colg, colt = st.columns([1, 1.4])
         with colg:
@@ -1395,7 +1395,7 @@ with tab_ss:
         mhs_resume_ss = hitung_mhs_resume(df_ss_scope)
         mhs_by_sales_ss = hitung_mhs_by_salesman(mhs_resume_ss, df_ss_scope, outlet_count_dmp)
         total_lolos_ss = mhs_by_sales_ss["Outlet Lolos MHS"].sum() if not mhs_by_sales_ss.empty else 0
-        total_cb_ss = mhs_by_sales_ss["CB Standar"].dropna().sum() if not mhs_by_sales_ss.empty else 0
+        total_cb_ss = mhs_by_sales_ss["Jumlah Outlet (DMP)"].dropna().sum() if not mhs_by_sales_ss.empty else 0
         pct_mhs_ss = (total_lolos_ss / total_cb_ss * 100) if total_cb_ss else 0
 
         p1, p2, p3 = st.columns(3)
@@ -1404,7 +1404,7 @@ with tab_ss:
         with p2:
             kpi_card("🏪", "OA", f"{oa_total_ss} outlet", f"{oa_pct_ss:.1f}% dari CB Standpro Area ({cb_standpro_ss})")
         with p3:
-            kpi_card("📦", "% MHS", fmt_pct(pct_mhs_ss), f"{int(total_lolos_ss)} / {int(total_cb_ss)} CB Standar")
+            kpi_card("📦", "% MHS", fmt_pct(pct_mhs_ss), f"{int(total_lolos_ss)} / {int(total_cb_ss)} outlet DMP")
 
     st.write("")
     with st.container(border=True):
