@@ -21,7 +21,7 @@ daftar lengkap. Ringkasan perubahan besar di versi ini (Update 3.0):
    angka-angka utama tiap menu (bukan di setiap baris tabel, supaya tetap
    terbaca).
 6. Menu Insentif sudah menghitung nominal insentif riil berdasarkan skema
-   PDF TO-Retail & TO-Grosir M245 (Agustus-September 2026), kriteria: Sales,
+   PDF TO Retail, TO Grosir & KLK M245 (Agustus-September 2026), kriteria: Sales,
    Sales per Kategori (Coffee/Cereal/Instant Food/Homecare), Must Have SKU,
    Outlet Active. Bagian Reward & Punishment (Tagihan, Visit in Radius)
    SENGAJA DIABAIKAN sesuai instruksi.
@@ -53,11 +53,24 @@ COL = {
 TARGET_ALL_COL = {"kode_sales": "Kode Sales", "periode": "Periode", "target": "Target"}
 TARGET_DIVISI_COL = {"kode_sales": "Kode Sales", "periode": "Periode", "divisi": "Divisi", "target": "Target"}
 DMP_COL = {"outlet": "KODEOUTLET", "nama_outlet": "NAMAOUTLET", "rayon": "RAYON", "salesman": "SALESMAN",
-           "lastupdate": "LASTUPDATE", "namaclass": "NAMACLASS", "namachannel": "NAMACHANNEL"}
+           "kode_sales": "SLSNO", "lastupdate": "LASTUPDATE", "namaclass": "NAMACLASS", "namachannel": "NAMACHANNEL"}
 
-STANDAR_TEAM = {
-    "TO-Retail": {"CB": 300, "EC": 20, "IPT": 6},
-    "TO-Grosir": {"CB": 90, "EC": 12, "IPT": 10},
+# Standart Produktivity Team M245 - GT Nasional, berlaku per 03 Agustus 2026 (W32).
+# Kode SF & KODESALESFORCE di data (LBP kolom Salesforce, DMP kolom KODESALESFORCE)
+# adalah angka di depan sebelum "-", dipetakan ke Type SF di sini.
+KODE_SF_LABEL = {
+    "106": "SE", "120": "TO GROSIR", "122": "TO ALL", "121": "TO RETAIL",
+    "145": "TO ST", "220": "KLK", "226": "KVS ST", "213": "MOTORIS",
+}
+PRODUKTIVITY_STANDAR = {
+    "SE":        {"cb_cover": 60,  "call_day": 10, "ec_day": 6,  "ipt_day": 15, "oa_month_pct": 100, "target_channel": "GMM"},
+    "TO GROSIR": {"cb_cover": 90,  "call_day": 15, "ec_day": 12, "ipt_day": 10, "oa_month_pct": 100, "target_channel": "RT Large & SG Up"},
+    "TO ALL":    {"cb_cover": 270, "call_day": 25, "ec_day": 20, "ipt_day": 8,  "oa_month_pct": 90,  "target_channel": "All Channel"},
+    "TO RETAIL": {"cb_cover": 300, "call_day": 25, "ec_day": 20, "ipt_day": 6,  "oa_month_pct": 90,  "target_channel": "RT Large, Kios"},
+    "TO ST":     {"cb_cover": 210, "call_day": 20, "ec_day": 15, "ipt_day": 6,  "oa_month_pct": 90,  "target_channel": "Warduh & Kantin"},
+    "KLK":       {"cb_cover": 280, "call_day": 25, "ec_day": 20, "ipt_day": 8,  "oa_month_pct": 90,  "target_channel": "All Channel"},
+    "KVS ST":    {"cb_cover": 360, "call_day": 30, "ec_day": 25, "ipt_day": 3,  "oa_month_pct": 90,  "target_channel": "Warduh & Kantin"},
+    "MOTORIS":   {"cb_cover": 420, "call_day": 35, "ec_day": 25, "ipt_day": 3,  "oa_month_pct": 70,  "target_channel": "Kios"},
 }
 # Target SKU per klasifikasi channel — DARI MEMORANDUM REVISI 27 AGUSTUS 2026,
 # diambil dari kolom NAMACLASS (dan NAMACHANNEL khusus Supermarket) di DMP,
@@ -101,25 +114,33 @@ TIPE_OUTLET_LABEL = {
 }
 DIVISI_LABEL = {"5": "Coffee", "6": "Cereal", "8": "Instant Food", "16": "Homecare"}
 
-# Skema insentif M245 (Agustus-September 2026) dari PDF TO-Retail & TO-Grosir,
+# Skema insentif M245 (Agustus-September 2026) dari PDF TO Retail, TO Grosir & KLK,
 # dengan kriteria "SKU Sold" (dulu "Must Have SKU by Channel") sudah disesuaikan
-# ke Memorandum Revisi 27 Agustus 2026 — batas persentase turun jadi 50/60/70/80
-# (dari 60/70/80/90). Nominal Rp-nya TETAP sama seperti skema asli karena memo
-# revisi tidak menyebutkan perubahan nominal, cuma perubahan range & klasifikasi
-# channel — tolong dikonfirmasi kalau nominalnya ternyata ikut berubah.
+# ke Memorandum Revisi 27 Agustus 2026 — berlaku untuk Salesman (SE, TO Grosir,
+# TO All, TO Retail, KLK & TO ST) & Sales Supervisor, batas persentase turun jadi
+# 50/60/70/80 (dari 60/70/80/90). Nominal Rp-nya TETAP sama seperti skema asli
+# masing-masing karena memo revisi tidak menyebutkan perubahan nominal, cuma
+# perubahan range & klasifikasi channel — tolong dikonfirmasi kalau nominalnya
+# ternyata ikut berubah. Key dict ini mengikuti label Type SF (PRODUKTIVITY_STANDAR).
 # Setiap list: (persentase minimum, nominal Rp). Reward & Punishment TIDAK dipakai.
 INSENTIF_TIERS = {
-    "TO-Retail": {
+    "TO RETAIL": {
         "sales": [(90, 500_000), (95, 650_000), (100, 1_000_000), (110, 1_400_000)],
         "category": [(90, 75_000), (95, 100_000), (100, 150_000), (110, 250_000)],
         "mhs": [(50, 500_000), (60, 650_000), (70, 1_000_000), (80, 1_400_000)],
         "oa": [(90, 300_000), (95, 600_000), (100, 1_000_000)],
     },
-    "TO-Grosir": {
+    "TO GROSIR": {
         "sales": [(90, 600_000), (95, 800_000), (100, 1_200_000), (110, 1_800_000)],
         "category": [(90, 100_000), (95, 150_000), (100, 200_000), (110, 300_000)],
         "mhs": [(50, 600_000), (60, 800_000), (70, 1_200_000), (80, 1_800_000)],
         "oa": [(90, 400_000), (95, 800_000), (100, 1_200_000)],
+    },
+    "KLK": {
+        "sales": [(90, 550_000), (95, 750_000), (100, 1_100_000), (110, 1_600_000)],
+        "category": [(90, 100_000), (95, 125_000), (100, 175_000), (110, 300_000)],
+        "mhs": [(50, 550_000), (60, 750_000), (70, 1_100_000), (80, 1_600_000)],
+        "oa": [(90, 300_000), (95, 700_000), (100, 1_000_000)],
     },
 }
 
@@ -142,9 +163,11 @@ def inject_css():
     <style>
     .app-title {{
         text-align:center; text-transform:uppercase; letter-spacing:2px;
-        font-size:3.4rem; font-weight:800; margin-bottom:0.1rem; line-height:1.1;
-        background: linear-gradient(90deg, {ACCENT}, #38BDF8);
-        -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+        font-size:3.2rem; font-weight:800; margin-bottom:0.1rem; line-height:1.1;
+        color: {ACCENT};
+        text-shadow:
+            1px 1px 0 #c98f02, 2px 2px 0 #b17f02, 3px 3px 0 #996f02,
+            4px 4px 0 #815f01, 5px 5px 8px rgba(0,0,0,0.55);
     }}
     .app-subtitle {{ text-align:center; color:#9CA3AF; font-size:0.9rem; margin-bottom:1.2rem;}}
     .kpi-box {{
@@ -161,6 +184,23 @@ def inject_css():
         text-align:center; font-size:2.4rem; font-weight:800; color:{ACCENT};
         padding:10px 0 2px 0;
     }}
+
+    /* Poin 6: mobile-friendly — layar sempit (HP) */
+    @media (max-width: 640px) {{
+        .app-title {{ font-size:1.7rem; letter-spacing:1px;
+            text-shadow: 1px 1px 0 #c98f02, 2px 2px 0 #b17f02, 3px 3px 5px rgba(0,0,0,0.5); }}
+        .app-subtitle {{ font-size:0.75rem; margin-bottom:0.7rem; }}
+        .kpi-box {{ padding:10px 12px; min-height:auto; }}
+        .kpi-value {{ font-size:1.1rem; }}
+        .kpi-label {{ font-size:0.7rem; }}
+        .kpi-sub {{ font-size:0.65rem; }}
+        .big-nominal {{ font-size:1.6rem; }}
+        div[data-testid="stDataFrame"] {{ font-size:0.75rem; }}
+        .block-container {{ padding-left:0.6rem; padding-right:0.6rem; padding-top:1rem; }}
+        button[data-baseweb="tab"] {{ padding:6px 10px !important; font-size:0.8rem !important; }}
+    }}
+    /* Tabel lebar/panjang tetap bisa di-scroll horizontal di HP, bukan kepotong */
+    div[data-testid="stDataFrame"] {{ overflow-x:auto; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -228,12 +268,9 @@ def load_lbp(file_bytes: bytes, file_name: str) -> pd.DataFrame:
     df[COL["transtype"]] = df[COL["transtype"]].astype(str).str.strip().str.upper()
 
     def classify_team(x):
-        x = str(x).upper()
-        if "TO RETAIL" in x:
-            return "TO-Retail"
-        if "TO GROSIR" in x:
-            return "TO-Grosir"
-        return "Lainnya"
+        m = re.match(r"^\s*(\d+)", str(x))
+        kode = m.group(1) if m else None
+        return KODE_SF_LABEL.get(kode, "Lainnya")
 
     df["team_simple"] = df[COL["salesforce"]].apply(classify_team)
     df["_divisi_norm"] = df[COL["divisi"]].astype(str).str.strip().apply(lambda x: x.lstrip("0") or "0")
@@ -364,9 +401,11 @@ def load_dmp(file_bytes: bytes) -> pd.DataFrame:
     df = df.sort_values("_lastupdate_dt", ascending=False).drop_duplicates(subset=[DMP_COL["outlet"]], keep="first")
     df["Kategori Channel"] = df.apply(
         lambda r: classify_channel_memo(r.get(DMP_COL["namaclass"]), r.get(DMP_COL["namachannel"])), axis=1)
-    out = df[[DMP_COL["outlet"], DMP_COL["nama_outlet"], DMP_COL["salesman"], DMP_COL["rayon"], "Kategori Channel"]]
+    out = df[[DMP_COL["outlet"], DMP_COL["nama_outlet"], DMP_COL["salesman"], DMP_COL["kode_sales"],
+              DMP_COL["rayon"], "Kategori Channel"]]
     return out.rename(columns={DMP_COL["outlet"]: COL["outlet"], DMP_COL["nama_outlet"]: "Nama Outlet (DMP)",
-                                DMP_COL["salesman"]: "Salesman", DMP_COL["rayon"]: "Rayon"})
+                                DMP_COL["salesman"]: "Salesman", DMP_COL["kode_sales"]: "Kode Sales (DMP)",
+                                DMP_COL["rayon"]: "Rayon"})
 
 
 def to_excel_bytes(df: pd.DataFrame) -> bytes:
@@ -488,7 +527,7 @@ def ringkasan_by_salesman(df: pd.DataFrame, target_all: pd.DataFrame, periode_se
     out[["OA", "EC", "Avg SKU"]] = out[["OA", "EC", "Avg SKU"]].fillna(0)
     out["Avg SKU"] = out["Avg SKU"].round(1)
 
-    out["CB Standar"] = out["team_simple"].map(lambda tm: STANDAR_TEAM.get(tm, {}).get("CB"))
+    out["CB Standar"] = out["team_simple"].map(lambda tm: PRODUKTIVITY_STANDAR.get(tm, {}).get("cb_cover"))
     out["% OA"] = np.where(out["CB Standar"].notna(), (out["OA"] / out["CB Standar"] * 100).round(1), np.nan)
 
     if not target_all.empty:
@@ -543,18 +582,23 @@ def hitung_mhs_resume(df_scope: pd.DataFrame) -> pd.DataFrame:
                  COL["salesman"]: "Salesman", COL["channel"]: "Channel"})
 
 
-def hitung_mhs_by_salesman(tampil: pd.DataFrame, df_scope: pd.DataFrame) -> pd.DataFrame:
+def hitung_mhs_by_salesman(tampil: pd.DataFrame, df_scope: pd.DataFrame, outlet_count_dmp: pd.Series) -> pd.DataFrame:
+    """outlet_count_dmp: Series jumlah outlet dari DMP, index = Kode Sales.
+    Ini pembagi %MHS yang baru (ganti CB Standpro), dikunci per Kode Sales
+    tapi kode sales-nya sendiri tidak ditampilkan di tabel hasil."""
     if tampil.empty:
-        return pd.DataFrame(columns=["Salesman", "Team", "CB Standar", "Total Outlet Bertransaksi",
+        return pd.DataFrame(columns=["Salesman", "Team", "Jumlah Outlet (DMP)", "Total Outlet Bertransaksi",
                                       "Outlet Lolos MHS", "% MHS"])
     agg = tampil.groupby("Salesman").agg(Total_Outlet=("Lolos MHS", "count"),
                                           Outlet_Lolos=("Lolos MHS", "sum")).reset_index()
-    team_map = df_scope.drop_duplicates(subset=[COL["salesman"]])[[COL["salesman"], "team_simple"]]
+    team_map = df_scope.drop_duplicates(subset=[COL["salesman"]])[[COL["salesman"], "team_simple", COL["kode_sales"]]]
     agg = agg.merge(team_map, left_on="Salesman", right_on=COL["salesman"], how="left")
-    agg["CB Standar"] = agg["team_simple"].map(lambda tm: STANDAR_TEAM.get(tm, {}).get("CB"))
-    agg["% MHS"] = np.where(agg["CB Standar"].notna(), (agg["Outlet_Lolos"] / agg["CB Standar"] * 100).round(1), np.nan)
-    return agg.rename(columns={"Outlet_Lolos": "Outlet Lolos MHS", "Total_Outlet": "Total Outlet Bertransaksi",
-                                "team_simple": "Team"})
+    agg["Jumlah Outlet (DMP)"] = agg[COL["kode_sales"]].map(outlet_count_dmp)
+    agg["% MHS"] = np.where(agg["Jumlah Outlet (DMP)"].fillna(0) > 0,
+                             (agg["Outlet_Lolos"] / agg["Jumlah Outlet (DMP)"] * 100).round(1), np.nan)
+    out = agg.rename(columns={"Outlet_Lolos": "Outlet Lolos MHS", "Total_Outlet": "Total Outlet Bertransaksi",
+                               "team_simple": "Team"})
+    return out.drop(columns=[COL["kode_sales"]])
 
 
 # =====================================================================
@@ -703,7 +747,7 @@ target_all, target_divisi = load_target(_target_bytes) if _target_bytes is not N
 
 _dmp_bytes, _ = _read_bytes_and_name(dmp_file) if dmp_file is not None else (None, None)
 dmp_master = load_dmp(_dmp_bytes) if _dmp_bytes is not None else pd.DataFrame(
-    columns=[COL["outlet"], "Nama Outlet (DMP)", "Salesman", "Rayon", "Kategori Channel"])
+    columns=[COL["outlet"], "Nama Outlet (DMP)", "Salesman", "Kode Sales (DMP)", "Rayon", "Kategori Channel"])
 rayon_channel_map = dmp_master[[COL["outlet"], "Rayon", "Kategori Channel"]] if not dmp_master.empty else pd.DataFrame(
     columns=[COL["outlet"], "Rayon", "Kategori Channel"])
 for y in lbp_by_year:
@@ -712,6 +756,12 @@ for y in lbp_by_year:
     else:
         lbp_by_year[y]["Rayon"] = np.nan
         lbp_by_year[y]["Kategori Channel"] = np.nan
+
+# Jumlah outlet per Kode Sales dari DMP — pembagi %MHS yang baru (poin 2),
+# menggantikan CB Standpro Team. Dikunci ke Kode Sales, TIDAK ditampilkan
+# ke tabel manapun.
+outlet_count_dmp = (dmp_master.groupby("Kode Sales (DMP)")[COL["outlet"]].nunique()
+                     if not dmp_master.empty else pd.Series(dtype=int))
 
 available_years = sorted(lbp_by_year.keys())
 
@@ -750,7 +800,7 @@ if week_sel:
     df_filtered = df_filtered[df_filtered[COL["week"]].isin(week_sel)]
 
 team_per_salesman = df_filtered.drop_duplicates(subset=[COL["kode_sales"]])[[COL["kode_sales"], "team_simple"]]
-saran_cb = int(team_per_salesman["team_simple"].map(lambda tm: STANDAR_TEAM.get(tm, {}).get("CB", 0)).sum())
+saran_cb = int(team_per_salesman["team_simple"].map(lambda tm: PRODUKTIVITY_STANDAR.get(tm, {}).get("cb_cover", 0)).sum())
 
 with st.sidebar:
     cb_standpro_area = st.number_input("CB Standpro Area (saran otomatis, bisa ditimpa)",
@@ -818,7 +868,7 @@ st.divider()
 # =====================================================================
 ringkasan_sales = ringkasan_by_salesman(df_filtered, target_all, periode_sel, hke)
 mhs_resume_all = hitung_mhs_resume(df_filtered)
-mhs_by_sales_all = hitung_mhs_by_salesman(mhs_resume_all, df_filtered)
+mhs_by_sales_all = hitung_mhs_by_salesman(mhs_resume_all, df_filtered, outlet_count_dmp)
 
 (tab_overview, tab_sales, tab_wilayah, tab_subbrand, tab_mhs, tab_insentif, tab_lato,
  tab_ltdnpl, tab_paretto, tab_ss, tab_readme) = st.tabs(
@@ -1067,7 +1117,7 @@ with tab_mhs:
     st.write("")
     with st.container(border=True):
         st.markdown("#### 📈 % MHS Keseluruhan (vs CB Standpro Read Me)")
-        mhs_by_sales = hitung_mhs_by_salesman(tampil, df_mhs_scope)
+        mhs_by_sales = hitung_mhs_by_salesman(tampil, df_mhs_scope, outlet_count_dmp)
         total_lolos = mhs_by_sales["Outlet Lolos MHS"].sum() if not mhs_by_sales.empty else 0
         total_cb = mhs_by_sales["CB Standar"].dropna().sum() if not mhs_by_sales.empty else 0
         pct_mhs_overall = (total_lolos / total_cb * 100) if total_cb else 0
@@ -1121,10 +1171,11 @@ with tab_mhs:
 # ---------------------------------------------------------------- Insentif
 with tab_insentif:
     with st.container(border=True):
-        st.markdown("#### 🎯 Insentif — Skema TO-Retail & TO-Grosir M245 (Agustus-September 2026)")
+        st.markdown("#### 🎯 Insentif — Skema TO Retail, TO Grosir & KLK M245 (Agustus-September 2026)")
         st.caption("Bagian Reward & Punishment (Tagihan, Visit in Radius) TIDAK dihitung sesuai instruksi. "
-                   "Salesman di luar team TO-Retail/TO-Grosir belum punya skema, jadi tidak muncul di sini.")
-        salesman_insentif_opts = ringkasan_sales.loc[ringkasan_sales["Team"].isin(["TO-Retail", "TO-Grosir"]), "Salesman"].tolist()
+                   "Salesman di luar team ini (SE, TO All, TO ST, KVS ST, Motoris, dst) belum punya skema, "
+                   "jadi tidak muncul di sini.")
+        salesman_insentif_opts = ringkasan_sales.loc[ringkasan_sales["Team"].isin(list(INSENTIF_TIERS.keys())), "Salesman"].tolist()
         salesman_insentif_opts = [s for s in salesman_insentif_opts if s in salesman_terpilih]
         salesman_pilih_insentif = st.multiselect("Filter salesman", salesman_insentif_opts,
                                                   default=salesman_insentif_opts, key="insentif_salesman_filter")
@@ -1181,7 +1232,7 @@ with tab_insentif:
 
     st.write("")
     if tbl_insentif.empty:
-        st.info("Belum ada salesman TO-Retail/TO-Grosir yang cocok dengan filter saat ini.")
+        st.info("Belum ada salesman TO Retail/TO Grosir/KLK yang cocok dengan filter saat ini.")
     else:
         with st.container(border=True):
             st.markdown("#### 💵 Total Insentif")
@@ -1244,15 +1295,18 @@ with tab_lato:
             st.caption(f"{len(tbl_lato)} outlet ditampilkan &middot; {n_belum} outlet BELUM ada transaksi "
                        f"(sesuai filter Periode/Week yang aktif).")
 
+            is_belum = (tbl_lato["Omzet"] <= 0).reset_index(drop=True)
+            display_cols = ["Salesman", "Rayon", COL["outlet"], "Nama Outlet", "Nominal Transaksi"]
+            tbl_lato_display = tbl_lato[display_cols].reset_index(drop=True)
+
             def _highlight_belum(row):
-                if row["Omzet"] <= 0:
+                if is_belum.loc[row.name]:
                     return ["background-color: #7f1d1d; color: #FCA5A5"] * len(row)
                 return [""] * len(row)
 
-            display_cols = ["Salesman", "Rayon", COL["outlet"], "Nama Outlet", "Nominal Transaksi"]
-            styled = tbl_lato[display_cols + ["Omzet"]].style.apply(_highlight_belum, axis=1).hide(axis="columns", subset=["Omzet"])
+            styled = tbl_lato_display.style.apply(_highlight_belum, axis=1)
             st.dataframe(styled, hide_index=True, use_container_width=True, height=460)
-            download_button(tbl_lato[display_cols], "Download Excel (LATO)", "lato.xlsx", "dl_lato")
+            download_button(tbl_lato_display, "Download Excel (LATO)", "lato.xlsx", "dl_lato")
 
 # ---------------------------------------------------------------- LTD NPL
 with tab_ltdnpl:
@@ -1263,8 +1317,34 @@ with tab_ltdnpl:
 # ---------------------------------------------------------------- Paretto
 with tab_paretto:
     with st.container(border=True):
-        st.markdown("#### 📐 Paretto")
-        st.info("Menu ini akan dikembangkan lebih lanjut.")
+        st.markdown("#### 📐 Paretto — Ranking 40 Toko Omzet Tertinggi")
+        st.caption("Omzet dihitung neto (Bruto F + Bruto R, sesuai filter Periode/Week yang aktif di sidebar).")
+        cf1, cf2 = st.columns(2)
+        with cf1:
+            salesman_pareto = st.multiselect("Filter salesman", salesman_terpilih, default=salesman_terpilih,
+                                              key="pareto_salesman_filter")
+        with cf2:
+            rayon_pareto_opts = sorted(df_filtered.loc[df_filtered[COL["salesman"]].isin(salesman_pareto), "Rayon"]
+                                        .dropna().unique().tolist())
+            rayon_pareto = st.multiselect("Filter Rayon", rayon_pareto_opts, default=rayon_pareto_opts,
+                                           key="pareto_rayon_filter")
+
+        df_pareto_scope = df_filtered[df_filtered[COL["salesman"]].isin(salesman_pareto)] if salesman_pareto else df_filtered.iloc[0:0]
+        if rayon_pareto_opts:
+            df_pareto_scope = df_pareto_scope[df_pareto_scope["Rayon"].isin(rayon_pareto)] if rayon_pareto else df_pareto_scope.iloc[0:0]
+
+        agg_pareto = net_by_group(df_pareto_scope, [COL["outlet"], COL["nama_outlet"], COL["salesman"], "Rayon"], "Omzet")
+        agg_pareto = agg_pareto.sort_values("Omzet", ascending=False).head(40).reset_index(drop=True)
+        agg_pareto.insert(0, "Rank", range(1, len(agg_pareto) + 1))
+        agg_pareto = agg_pareto.rename(columns={COL["outlet"]: "No Outlet", COL["nama_outlet"]: "Nama Outlet",
+                                                 COL["salesman"]: "Salesman"})
+
+        st.dataframe(format_cols(agg_pareto[["Rank", "No Outlet", "Nama Outlet", "Salesman", "Rayon", "Omzet"]],
+                                 rp_cols=["Omzet"]), hide_index=True, use_container_width=True, height=460)
+        fig_pareto = bar_chart(agg_pareto.head(20), "Nama Outlet", "Omzet", "Top 20 dari 40 Toko (visual)")
+        st.plotly_chart(fig_pareto, use_container_width=True)
+        download_button(agg_pareto[["Rank", "No Outlet", "Nama Outlet", "Salesman", "Rayon", "Omzet"]],
+                         "Download Excel (Paretto)", "paretto.xlsx", "dl_pareto")
 
 # ---------------------------------------------------------------- Performance SS
 with tab_ss:
@@ -1291,7 +1371,7 @@ with tab_ss:
         target_total_ss = tgt_df_ss[TARGET_ALL_COL["target"]].sum()
 
     team_per_salesman_ss = df_ss_scope.drop_duplicates(subset=[COL["kode_sales"]])[[COL["kode_sales"], "team_simple"]]
-    cb_standpro_ss = int(team_per_salesman_ss["team_simple"].map(lambda tm: STANDAR_TEAM.get(tm, {}).get("CB", 0)).sum())
+    cb_standpro_ss = int(team_per_salesman_ss["team_simple"].map(lambda tm: PRODUKTIVITY_STANDAR.get(tm, {}).get("cb_cover", 0)).sum())
     oa_pct_ss = (oa_total_ss / cb_standpro_ss * 100) if cb_standpro_ss else 0
 
     st.write("")
@@ -1313,7 +1393,7 @@ with tab_ss:
         st.markdown("#### ⚙️ Productivity")
         ec_total_ss = int(ringkasan_sales.loc[ringkasan_sales["Salesman"].isin(salesman_filter_ss), "EC"].sum())
         mhs_resume_ss = hitung_mhs_resume(df_ss_scope)
-        mhs_by_sales_ss = hitung_mhs_by_salesman(mhs_resume_ss, df_ss_scope)
+        mhs_by_sales_ss = hitung_mhs_by_salesman(mhs_resume_ss, df_ss_scope, outlet_count_dmp)
         total_lolos_ss = mhs_by_sales_ss["Outlet Lolos MHS"].sum() if not mhs_by_sales_ss.empty else 0
         total_cb_ss = mhs_by_sales_ss["CB Standar"].dropna().sum() if not mhs_by_sales_ss.empty else 0
         pct_mhs_ss = (total_lolos_ss / total_cb_ss * 100) if total_cb_ss else 0
@@ -1376,8 +1456,15 @@ with tab_ss:
 # ---------------------------------------------------------------- Read Me
 with tab_readme:
     with st.container(border=True):
-        st.markdown("#### 📖 Standar Team (CB / EC / IPT)")
-        st.dataframe(pd.DataFrame(STANDAR_TEAM).T.rename_axis("Team").reset_index(), hide_index=True)
+        st.markdown("#### 📖 Standart Produktivity Team M245 (berlaku per 03 Agustus 2026, W32)")
+        st.caption("Sumber: Surat No. 001-W/EDP/VII/2026. CB Cover dipakai sebagai pembagi % OA di seluruh "
+                   "dashboard. Pembagi % MHS/SKU Sold TIDAK memakai tabel ini lagi — lihat catatan di menu MHS.")
+        df_prod_std = pd.DataFrame([
+            {"Type SF": k, "CB Cover": v["cb_cover"], "Call/Day": v["call_day"], "EC/Day": v["ec_day"],
+             "IPT/Day": v["ipt_day"], "OA/Month": f'{v["oa_month_pct"]}%', "Target Channel": v["target_channel"]}
+            for k, v in PRODUKTIVITY_STANDAR.items()
+        ])
+        st.dataframe(df_prod_std, hide_index=True, use_container_width=True)
 
     st.write("")
     with st.container(border=True):

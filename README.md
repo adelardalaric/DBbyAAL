@@ -147,3 +147,30 @@ butuh `KODEOUTLET`, `RAYON`, `SALESMAN`, `LASTUPDATE`.
    dengan cara membaca file jadi `bytes` mentah dan mengirim `bytes` + nama
    sebagai argumen terpisah ke fungsi-fungsi loader, bukan objek file-like
    — pendekatan ini juga lebih cepat untuk caching Streamlit.
+
+## Update terbaru (Standart Produktivity, DMP outlet count, LATO, Paretto)
+
+- **Standar Team**: sekarang diambil lengkap dari Surat Standart Produktivity
+  (No. 001-W/EDP/VII/2026, berlaku 03 Agustus 2026/W32) — 8 tipe salesforce
+  (SE, TO Grosir, TO All, TO Retail, TO ST, KLK, KVS ST, Motoris), diklasifikasi
+  dari KODE SF di depan kolom Salesforce (LBP)/KODESALESFORCE (DMP), bukan lagi
+  tebak-tebakan substring nama. Salesforce yang tidak ada di 8 tipe ini (mis.
+  MUH, Sales Office) tampil "Lainnya" — tidak punya standar CB Cover.
+- **Skema Insentif KLK** ditambahkan (dari PDF Scheme KLK Agust-Sept 2026),
+  sejajar dengan TO Retail & TO Grosir.
+- **Pembagi %MHS/SKU Sold** sekarang JUMLAH OUTLET ASLI DARI DMP per Kode Sales
+  (dikunci lewat SLSNO di DMP = Kode Sales di LBP), BUKAN lagi CB Standpro
+  Team. Divalidasi: Salesman Fitri (896023) → 105 outlet di DMP, persis sesuai
+  contoh yang diberikan. Kode Sales dipakai hanya untuk mengunci perhitungan
+  di balik layar — tidak pernah ditampilkan di tabel manapun. **%OA** TETAP
+  pakai CB Cover dari tabel Standart Produktivity (tidak berubah).
+- **Menu LATO**: bug format Rupiah sudah diperbaiki — kolom Omzet mentah
+  sekarang benar-benar tidak pernah ikut dirender (sebelumnya sempat lolos
+  karena `Styler.hide()` tidak selalu ditaati oleh `st.dataframe`).
+- **Menu Paretto**: filter Salesman + Rayon (pola sama seperti MHS), ranking
+  40 toko omzet tertinggi (neto Bruto F+R), plus bar chart top 20 dari 40 itu.
+- **Judul dashboard**: efek gradient dihapus, diganti efek 3D/emboss pakai
+  tumpukan `text-shadow` (bukan gradient warna).
+- **Tampilan mobile**: ditambahkan media query untuk layar ≤640px — judul,
+  kartu KPI, dan tabel menyesuaikan ukuran font supaya tidak kepotong/kekecilan
+  di HP.
