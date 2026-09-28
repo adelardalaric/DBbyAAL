@@ -246,3 +246,18 @@ butuh `KODEOUTLET`, `RAYON`, `SALESMAN`, `LASTUPDATE`.
      Tidak Bergerak, Kosong — batasnya bisa diubah di "Pengaturan lanjutan".
   % keluar = total penurunan stok antar file berurutan ÷ stok tertinggi sebelum file terakhir; restock di
   tengah periode tidak menutupi pengeluaran.
+
+## Update 3.3 (latar hexagon, angka rapi, menu dua baris)
+
+- **Latar belakang**: dashboard memakai gambar hexagon (`assets/bg_hexagon.jpg`, versi 2560×1440 dari
+  `hexagon_dark_4k.jpg`, ±148 KB). Panel, kartu, dan tabel dibuat semi-transparan + blur supaya tulisan tetap terbaca.
+  **Folder `assets/` wajib ikut di-push ke GitHub.** Kalau file itu tidak ada, dashboard tidak error — latarnya
+  kembali ke warna gelap polos. Di HP latar tidak dikunci (scroll bersama halaman).
+- **Angka target/capaian/% di kartu**: "Rp" dan angkanya sekarang terkunci satu baris (spasi tak-terputus), tanda "%"
+  menempel di angkanya, ukuran huruf menyesuaikan lebar kotak, dan "Rp"/"%" dibuat lebih kecil supaya angkanya
+  menonjol. Berlaku di kartu Capaian Salesman, kotak Capaian by Divisi, dan kartu KPI paling atas.
+- **Menu**: `st.tabs` diganti dua baris pill (baris 1: Overview → Insentif, baris 2: LATO → Read Me). Pill otomatis
+  turun ke baris berikutnya kalau layar sempit, jadi tidak pernah perlu digeser ke samping. Sebagai bonus, hanya
+  halaman yang dipilih yang dihitung sehingga dashboard lebih ringan. Konsekuensi: filter lokal di sebuah menu
+  kembali ke bawaan kalau kamu pindah menu; file yang diupload di menu Stock tetap tersimpan selama sesi
+  (ada tombol "Hapus semua"). Butuh Streamlit ≥ 1.40 (`st.pills`) — sudah ada di requirements.txt.

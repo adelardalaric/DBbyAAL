@@ -161,25 +161,47 @@ CHART_FONT = "#D9D9E3"
 # =====================================================================
 # 1. STYLE — tema gelap ala dashboard referensi (panel membulat, aksen pink/lavender)
 # =====================================================================
+@st.cache_resource
+def _bg_data_uri() -> str:
+    """Latar belakang dashboard (assets/bg_hexagon.jpg) sebagai data-URI. Kalau file tidak ada
+    (belum ikut di-push ke GitHub), latar jatuh kembali ke warna gelap polos — tidak error."""
+    import base64
+    try:
+        base = os.path.dirname(os.path.abspath(__file__))
+    except NameError:
+        base = os.getcwd()
+    path = os.path.join(base, "assets", "bg_hexagon.jpg")
+    if not os.path.exists(path):
+        return ""
+    with open(path, "rb") as f:
+        return "data:image/jpeg;base64," + base64.b64encode(f.read()).decode()
+
+
 def inject_css():
     _h_css = "".join(".tbl-h-%d { max-height:%dpx; }" % (h, h) for h in range(120, 1001, 20))
     _pw_css = "".join(".pw-%d { width:%d%%; }" % (n, n) for n in range(0, 101))
+    _bg = _bg_data_uri()
+    _bg_layer = (f'linear-gradient(rgba(4,6,12,0.28), rgba(4,6,12,0.28)), url("{_bg}") center center / cover no-repeat fixed'
+                 if _bg else "#0B0B0F")
     st.markdown(f"""
     <style>
-    section[data-testid="stSidebar"] {{ background:#0B0B0F; border-right:1px solid #1d1d24; }}
+    /* ===== Latar belakang hexagon + panel semi-transparan supaya tetap terbaca ===== */
+    .stApp {{ background:{_bg_layer} !important; }}
+    [data-testid="stAppViewContainer"], [data-testid="stMain"], header[data-testid="stHeader"] {{ background:transparent !important; }}
+    section[data-testid="stSidebar"] > div {{ background:rgba(6,8,14,0.84) !important; backdrop-filter:blur(8px); }}
+    section[data-testid="stSidebar"] {{ border-right:1px solid rgba(140,160,210,0.16); }}
     div[data-testid="stVerticalBlockBorderWrapper"] {{
-        border-radius:18px !important; border:1px solid #23232b !important; background:#111116;
+        border-radius:18px !important; border:1px solid rgba(140,160,210,0.18) !important;
+        background:rgba(10,12,19,0.78); backdrop-filter:blur(5px);
     }}
-    /* Tab menu bergaya pill */
-    div[data-baseweb="tab-list"] {{ gap:6px; row-gap:8px; flex-wrap:wrap !important; overflow:visible !important; height:auto !important; }}
-    button[data-baseweb="tab"] {{
-        background:#15151b; border:1px solid #23232b; border-radius:999px !important;
-        padding:8px 16px !important; margin-right:2px;
+
+    /* Menu navigasi (pill, otomatis turun ke baris berikutnya — tidak pernah perlu digeser) */
+    button[data-testid="stBaseButton-pills"] {{
+        background:rgba(18,21,31,0.85); border:1px solid rgba(140,160,210,0.22); border-radius:999px; color:#D5D7E4;
     }}
-    button[data-baseweb="tab"][aria-selected="true"] {{
-        background:rgba(169,166,247,0.18); border-color:{ACCENT2}; color:#fff;
+    button[data-testid="stBaseButton-pillsActive"] {{
+        background:rgba(169,166,247,0.24); border:1px solid {ACCENT2}; border-radius:999px; color:#fff; font-weight:700;
     }}
-    div[data-baseweb="tab-highlight"], div[data-baseweb="tab-border"] {{ display:none; }}
 
     .app-title {{
         text-align:center; text-transform:uppercase; letter-spacing:2px;
@@ -189,19 +211,26 @@ def inject_css():
             1px 1px 0 #d48ace, 2px 2px 0 #b874b2, 3px 3px 0 #9c5f96,
             4px 4px 0 #804b7b, 5px 5px 10px rgba(0,0,0,0.6);
     }}
-    .app-watermark {{ text-align:center; color:#8b8b98; font-size:0.85rem; letter-spacing:0.6px; margin:2px 0 1.2rem; }}
-    .app-subtitle {{ text-align:center; color:#9CA3AF; font-size:0.9rem; margin-bottom:1.2rem;}}
+    .app-watermark {{ text-align:center; color:#b9bccb; font-size:0.85rem; letter-spacing:0.6px; margin:2px 0 1.2rem;
+                      text-shadow:0 1px 6px rgba(0,0,0,0.85); }}
+    .app-subtitle {{ text-align:center; color:#b4b8c8; font-size:0.9rem; margin-bottom:1.2rem; text-shadow:0 1px 6px rgba(0,0,0,0.85); }}
+
+    /* Angka: selalu satu baris ("Rp" tidak boleh terpisah dari angkanya), lebar digit seragam */
+    .cur {{ font-size:0.74em; font-weight:600; opacity:0.72; margin-right:1px; }}
+    .kpi-value, .dv-value, .sc-cell {{ white-space:nowrap; font-variant-numeric:tabular-nums; }}
+
     .kpi-box {{
-        border:1px solid #23232b; border-radius:18px; padding:16px 18px;
-        background-color:#111116; height:100%; min-height:108px;
+        border:1px solid rgba(140,160,210,0.2); border-radius:18px; padding:16px 18px;
+        background-color:rgba(10,12,19,0.80); backdrop-filter:blur(5px); height:100%; min-height:108px;
+        container-type:inline-size;
     }}
     .kpi-icon {{
         width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
         font-size:1.05rem; background:rgba(243,166,233,0.16); margin-bottom:4px;
     }}
-    .kpi-label {{ font-size:0.8rem; color:#9CA3AF; margin-top:2px; }}
-    .kpi-value {{ font-size:1.5rem; font-weight:700; color:#F3F4F6; word-break:break-word; line-height:1.25;}}
-    .kpi-sub {{ font-size:0.75rem; color:#9CA3AF; margin-top:4px; }}
+    .kpi-label {{ font-size:0.8rem; color:#a9aebf; margin-top:2px; }}
+    .kpi-value {{ font-size:1.3rem; font-size:clamp(0.95rem, 8.4cqw, 1.5rem); font-weight:700; color:#F3F4F6; line-height:1.25; }}
+    .kpi-sub {{ font-size:0.75rem; color:#a9aebf; margin-top:4px; }}
     .kpi-cmp-up {{ color:#34D399; font-size:0.78rem; margin-top:2px; }}
     .kpi-cmp-down {{ color:#F87171; font-size:0.78rem; margin-top:2px; }}
     .big-nominal {{
@@ -209,23 +238,25 @@ def inject_css():
         padding:10px 0 2px 0;
     }}
     /* Kotak Capaian by Divisi (menu By Salesman) */
-    .dv-box {{ border:1px solid #2a2a33; border-radius:12px; padding:8px 10px; background:#14141a; min-height:66px; }}
-    .dv-label {{ font-size:0.62rem; color:#8b8b98; text-transform:uppercase; letter-spacing:0.4px; }}
-    .dv-value {{ font-size:0.92rem; font-weight:700; color:#f3f4f6; word-break:break-word; line-height:1.2; margin-top:2px; }}
-    .dv-sub {{ font-size:0.62rem; color:#8b8b98; margin-top:2px; }}
+    .dv-box {{ border:1px solid rgba(140,160,210,0.2); border-radius:12px; padding:8px 10px; background:rgba(20,23,33,0.86);
+               min-height:66px; min-width:0; overflow:hidden; }}
+    .dv-label {{ font-size:0.62rem; color:#9ba0b3; text-transform:uppercase; letter-spacing:0.4px; }}
+    .dv-value {{ font-size:0.92rem; font-weight:700; color:#f3f4f6; line-height:1.2; margin-top:2px; }}
+    .dv-sub {{ font-size:0.62rem; color:#9ba0b3; margin-top:2px; }}
     .dv-gap-bad {{ border:2px solid #ef4444; }}
     .dv-gap-bad .dv-value {{ color:#fca5a5; }}
     .dv-gap-ok {{ border:2px solid #22c55e; }}
     .dv-gap-ok .dv-value {{ color:#86efac; }}
 
     /* Tabel seragam: semua kolom rata tengah, header sticky, bisa scroll ke kanan & bawah */
-    .tbl-wrap {{ overflow:auto; border:1px solid #23232b; border-radius:14px; background:#111116; margin-bottom:6px; }}
+    .tbl-wrap {{ overflow:auto; border:1px solid rgba(140,160,210,0.2); border-radius:14px; background:rgba(10,12,19,0.84);
+                 backdrop-filter:blur(5px); margin-bottom:6px; }}
     table.tbl {{ border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-size:0.84rem; }}
-    table.tbl th, table.tbl td {{ text-align:center; padding:8px 16px; white-space:nowrap; border-bottom:1px solid #1c1c23; }}
-    table.tbl thead th {{ position:sticky; top:0; z-index:2; background:#1b1b24; color:#C9C9D6; font-weight:600;
-                          font-size:0.78rem; letter-spacing:0.3px; border-bottom:1px solid #2c2c37; }}
-    table.tbl tbody tr:nth-child(even) {{ background:#14141a; }}
-    table.tbl tbody tr:hover {{ background:#1d1d27; }}
+    table.tbl th, table.tbl td {{ text-align:center; padding:8px 16px; white-space:nowrap; border-bottom:1px solid rgba(255,255,255,0.06); }}
+    table.tbl thead th {{ position:sticky; top:0; z-index:2; background:#181b27; color:#C9CCDA; font-weight:600;
+                          font-size:0.78rem; letter-spacing:0.3px; border-bottom:1px solid rgba(255,255,255,0.12); }}
+    table.tbl tbody tr:nth-child(even) {{ background:rgba(255,255,255,0.035); }}
+    table.tbl tbody tr:hover {{ background:rgba(169,166,247,0.12); }}
     table.tbl tr.row-alert td {{ background:#3b1414; color:#fca5a5; }}
     table.tbl td.c-bad {{ color:#f87171; font-weight:700; }}
     table.tbl td.c-ok {{ color:#4ade80; font-weight:700; }}
@@ -238,30 +269,35 @@ def inject_css():
     {_pw_css}
 
     /* Panel Capaian by Divisi & kartu Capaian Salesman */
-    .dv-panel {{ border:1px solid #23232b; border-radius:14px; background:#111116; padding:10px 12px; margin-bottom:10px; }}
+    .dv-panel {{ border:1px solid rgba(140,160,210,0.2); border-radius:14px; background:rgba(10,12,19,0.80);
+                 backdrop-filter:blur(5px); padding:10px 12px; margin-bottom:10px; }}
     .dv-title {{ font-weight:700; font-size:0.95rem; margin-bottom:8px; color:#F0F0F7; }}
-    .dv-grid {{ display:grid; grid-template-columns:1.4fr 1.4fr 0.75fr 1.5fr; gap:8px; }}
+    .dv-grid {{ display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,0.8fr) minmax(0,1.5fr); gap:8px; }}
     .dv-panel, .sc-card {{ container-type:inline-size; }}
     .dv-grid .dv-box {{ padding:7px 8px; min-height:auto; }}
-    .dv-grid .dv-value {{ white-space:nowrap; font-size:0.78rem; font-size:clamp(0.6rem, 2.5cqw, 0.88rem); }}
-    .dv-bar {{ height:4px; border-radius:4px; background:#23232b; margin-top:9px; overflow:hidden; }}
+    .dv-grid .dv-value {{ font-size:0.78rem; font-size:clamp(0.6rem, 2.35cqw, 0.9rem); }}
+    .dv-bar {{ height:4px; border-radius:4px; background:rgba(255,255,255,0.10); margin-top:9px; overflow:hidden; }}
     .dv-bar span {{ display:block; height:100%; background:{ACCENT}; border-radius:4px; }}
     .dv-bar.ok span {{ background:#22c55e; }}
     .sc-wrap {{ padding-right:2px; }}
     .sc-grid {{ display:grid; grid-template-columns:repeat(auto-fill, minmax(460px, 1fr)); gap:10px; }}
-    .sc-card {{ border:1px solid #23232b; border-radius:14px; background:#111116; padding:9px 11px; }}
+    .sc-card {{ border:1px solid rgba(140,160,210,0.2); border-radius:14px; background:rgba(10,12,19,0.80);
+                backdrop-filter:blur(5px); padding:9px 11px; }}
     .sc-head {{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:7px; }}
     .sc-name {{ font-weight:700; font-size:0.88rem; color:#F0F0F7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
     .sc-tag {{ font-size:0.62rem; color:#B9B6F5; border:1px solid #3a3a55; border-radius:999px; padding:1px 8px; white-space:nowrap; }}
     .sc-card .dv-box {{ min-height:auto; padding:5px 8px; }}
-    .sc-row {{ display:grid; grid-template-columns:92px 1.4fr 1.4fr 0.75fr 1.5fr; gap:6px; align-items:stretch; margin-bottom:5px; }}
+    .sc-row {{ display:grid; grid-template-columns:84px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,0.8fr) minmax(0,1.5fr);
+               gap:6px; align-items:stretch; margin-bottom:5px; }}
     .sc-lab {{ display:flex; align-items:center; font-size:0.66rem; font-weight:700; color:#B9B6F5; letter-spacing:0.3px; white-space:nowrap; }}
-    .sc-cell {{ border:1px solid #23232b; border-radius:8px; background:#14141a; padding:5px 6px; text-align:center;
-                white-space:nowrap; font-weight:600; color:#E6E6EE; font-size:0.74rem; font-size:clamp(0.54rem, 2.05cqw, 0.8rem); }}
+    .sc-cell {{ border:1px solid rgba(140,160,210,0.18); border-radius:8px; background:rgba(20,23,33,0.86); padding:5px 6px;
+                text-align:center; min-width:0; overflow:hidden; font-weight:600; color:#E6E6EE;
+                font-size:0.74rem; font-size:clamp(0.52rem, 1.95cqw, 0.8rem); }}
     .sc-cell.gap-bad {{ border:1.5px solid #ef4444; color:#fca5a5; }}
     .sc-cell.gap-ok {{ border:1.5px solid #22c55e; color:#86efac; }}
-    .sc-row.sc-total .dv-box {{ min-height:auto; padding:5px 7px; }}
-    .sc-sep {{ height:1px; background:#1f1f27; margin:6px 0 6px; }}
+    .sc-row.sc-total .dv-box {{ min-height:auto; padding:6px 7px; }}
+    .sc-row.sc-total .dv-value {{ font-size:0.8rem; font-size:clamp(0.56rem, 2.2cqw, 0.92rem); }}
+    .sc-sep {{ height:1px; background:rgba(255,255,255,0.08); margin:6px 0 6px; }}
     .sc-row.sc-divisi {{ margin-bottom:4px; }}
 
     /* Kartu KPI Gap Harian: hijau kalau tercapai, merah kalau belum */
@@ -272,16 +308,15 @@ def inject_css():
 
     /* Mobile-friendly — layar sempit (HP) */
     @media (max-width: 640px) {{
+        .stApp {{ background-attachment:scroll !important; }}
         .app-title {{ font-size:1.7rem; letter-spacing:1px;
             text-shadow: 1px 1px 0 #d48ace, 2px 2px 0 #b874b2, 3px 3px 5px rgba(0,0,0,0.5); }}
         .app-watermark {{ font-size:0.7rem; margin-bottom:0.7rem; }}
         .kpi-box {{ padding:10px 12px; min-height:auto; }}
-        .kpi-value {{ font-size:1.1rem; }}
         .kpi-label {{ font-size:0.7rem; }}
         .kpi-sub {{ font-size:0.65rem; }}
         .big-nominal {{ font-size:1.6rem; }}
         .block-container {{ padding-left:0.6rem; padding-right:0.6rem; padding-top:1rem; }}
-        button[data-baseweb="tab"] {{ padding:6px 10px !important; font-size:0.8rem !important; }}
         table.tbl {{ font-size:0.74rem; }}
         table.tbl th, table.tbl td {{ padding:6px 10px; }}
         .dv-grid {{ grid-template-columns:1fr 1fr; }}
@@ -296,13 +331,22 @@ def inject_css():
     """, unsafe_allow_html=True)
 
 
+def nice(txt) -> str:
+    """Rapikan teks angka untuk HTML: 'Rp' dan angkanya dikunci satu baris (spasi tak-terputus), 'Rp'/'%'
+    dikecilkan supaya angkanya menonjol, dan '✓ Tercapai' tidak terpotong."""
+    t = str(txt)
+    t = re.sub(r"Rp\s", '<span class="cur">Rp</span>&nbsp;', t)
+    t = re.sub(r"%$", '<span class="cur">%</span>', t)
+    return t.replace("✓ ", "✓&nbsp;")
+
+
 def kpi_card(icon: str, label: str, value: str, sub: str = "", cmp_html: str = "", state: str = ""):
     """state: '' (netral) | 'ok' (hijau) | 'bad' (merah)."""
     st.markdown(f"""
     <div class="kpi-box {('kpi-' + state) if state else ''}">
         <div class="kpi-icon">{icon}</div>
         <div class="kpi-label">{label}</div>
-        <div class="kpi-value">{value}</div>
+        <div class="kpi-value">{nice(value)}</div>
         <div class="kpi-sub">{sub}</div>
         {cmp_html}
     </div>
@@ -1373,7 +1417,7 @@ def gap_state(tgt, cap):
 
 def box_html(label: str, value: str, sub: str = "", css: str = "") -> str:
     return (f'<div class="dv-box {css}"><div class="dv-label">{label}</div>'
-            f'<div class="dv-value">{value}</div>' + (f'<div class="dv-sub">{sub}</div>' if sub else "") + "</div>")
+            f'<div class="dv-value">{nice(value)}</div>' + (f'<div class="dv-sub">{sub}</div>' if sub else "") + "</div>")
 
 
 def bar_html(pct) -> str:
@@ -1429,8 +1473,8 @@ def salesman_card_html(name: str, team: str, tgt, cap, div_rows: list | None = N
             d_css, d_gtxt, _ = gap_state(d_tgt, d_cap)
             g_cls = {"dv-gap-ok": " gap-ok", "dv-gap-bad": " gap-bad"}.get(d_css, "")
             out.append(f'<div class="sc-row sc-divisi"><div class="sc-lab">{icon} {lbl}</div>'
-                       f'<div class="sc-cell">{fmt_rp(d_tgt)}</div><div class="sc-cell">{fmt_rp(d_cap)}</div>'
-                       f'<div class="sc-cell">{fmt_pct(d_pct)}</div><div class="sc-cell{g_cls}">{d_gtxt}</div></div>')
+                       f'<div class="sc-cell">{nice(fmt_rp(d_tgt))}</div><div class="sc-cell">{nice(fmt_rp(d_cap))}</div>'
+                       f'<div class="sc-cell">{nice(fmt_pct(d_pct))}</div><div class="sc-cell{g_cls}">{nice(d_gtxt)}</div></div>')
     out.append("</div>")
     return "".join(out)
 
@@ -1523,15 +1567,35 @@ ringkasan_sales = ringkasan_by_salesman(df_filtered, target_all, periode_sel, hk
 mhs_resume_all = hitung_mhs_resume(df_filtered)
 mhs_by_sales_all = hitung_mhs_by_salesman(mhs_resume_all, df_filtered, outlet_count_dmp)
 
-(tab_overview, tab_sales, tab_salcard, tab_wilayah, tab_subbrand, tab_mhs, tab_insentif, tab_lato,
- tab_ltdnpl, tab_paretto, tab_stock, tab_ss, tab_readme) = st.tabs(
-    ["📊 Overview", "🧑‍💼 By Salesman", "📇 Capaian Salesman", "🗺️ By Wilayah", "🏷️ By Subbrand & Divisi",
-     "📦 MHS", "🎯 Insentif", "📋 LATO", "🆕 LTD NPL", "📐 Paretto", "🗃️ Stock",
-     "📈 Performance SS", "📖 Read Me"]
-)
+# =====================================================================
+# MENU NAVIGASI — dua baris pill (tidak pernah perlu digeser ke samping).
+# Hanya halaman yang dipilih yang dihitung/ditampilkan, jadi dashboard juga lebih ringan.
+# =====================================================================
+NAV_ROW1 = ["📊 Overview", "🧑‍💼 By Salesman", "📇 Capaian Salesman", "🗺️ By Wilayah",
+            "🏷️ By Subbrand & Divisi", "📦 MHS", "🎯 Insentif"]
+NAV_ROW2 = ["📋 LATO", "🆕 LTD NPL", "📐 Paretto", "🗃️ Stock", "📈 Performance SS", "📖 Read Me"]
+
+if st.session_state.get("page") not in NAV_ROW1 + NAV_ROW2:
+    st.session_state["page"] = NAV_ROW1[0]
+
+
+def _nav_pick(row_key: str):
+    v = st.session_state.get(row_key)
+    if v:                                   # klik pada pill yang sedang aktif = None -> abaikan
+        st.session_state["page"] = v
+
+
+# sinkronkan tampilan kedua baris dengan halaman aktif (sebelum widget dibuat)
+st.session_state["nav_r1"] = st.session_state["page"] if st.session_state["page"] in NAV_ROW1 else None
+st.session_state["nav_r2"] = st.session_state["page"] if st.session_state["page"] in NAV_ROW2 else None
+st.pills("Menu baris 1", NAV_ROW1, selection_mode="single", key="nav_r1", label_visibility="collapsed",
+         on_change=_nav_pick, args=("nav_r1",))
+st.pills("Menu baris 2", NAV_ROW2, selection_mode="single", key="nav_r2", label_visibility="collapsed",
+         on_change=_nav_pick, args=("nav_r2",))
+page = st.session_state["page"]
 
 # ---------------------------------------------------------------- Overview
-with tab_overview:
+if page == "📊 Overview":
     with st.container(border=True):
         h1, h2, h3 = st.columns([1.5, 1.2, 1.5])
         with h1:
@@ -1606,7 +1670,7 @@ with tab_overview:
             show_chart(pie_chart(pie_sb, COL["subbrand_name"], "Omzet"))
 
 # ---------------------------------------------------------------- By Salesman
-with tab_sales:
+if page == "🧑‍💼 By Salesman":
     with st.container(border=True):
         st.markdown("#### 🧑‍💼 Kinerja per Salesman")
         st.caption("% OA dihitung dari standar CB per Team (Read Me). EC = akumulasi jumlah outlet unik "
@@ -1666,7 +1730,7 @@ with tab_sales:
         download_button(tbl_div_long, "Download Excel (Capaian by Divisi)", "by_salesman_divisi.xlsx", "dl_sales_div")
 
 # ---------------------------------------------------------------- Capaian Salesman (kartu ringkas)
-with tab_salcard:
+if page == "📇 Capaian Salesman":
     with st.container(border=True):
         st.markdown("#### 📇 Capaian Salesman — kartu ringkas untuk dibagikan")
         st.caption("Satu kartu per salesman: baris TOTAL (Target, Capaian, %, Gap Harian) lalu rincian tiap divisi "
@@ -1722,7 +1786,7 @@ with tab_salcard:
                            file_name="capaian_salesman.png", mime="image/png", key="dl_salcard_png")
 
 # ---------------------------------------------------------------- By Wilayah
-with tab_wilayah:
+if page == "🗺️ By Wilayah":
     icon_level = {"Kabupaten": "🏙️", "Kecamatan": "🏘️", "Kelurahan": "🏠"}
     # Kelurahan cenderung py banyak kategori kecil sehingga irisan "Lainnya" bisa
     # mendominasi pie chart dan tidak informatif -> untuk level ini pie TIDAK
@@ -1765,7 +1829,7 @@ with tab_wilayah:
                 show_chart(pie_chart(pie_pasar, COL["kode_pasar"], "Omzet", "Kontribusi Omzet by Pasar"))
 
 # ---------------------------------------------------------------- By Subbrand & Divisi
-with tab_subbrand:
+if page == "🏷️ By Subbrand & Divisi":
     with st.container(border=True):
         st.markdown("#### 🏷️ Kontribusi per Subbrand")
         agg_sb = net_by_group(df_filtered, [COL["subbrand_name"]], "Omzet").sort_values("Omzet", ascending=False)
@@ -1815,7 +1879,7 @@ with tab_subbrand:
                          f"breakdown_subbrand_{salesman_for_breakdown}.xlsx", "dl_breakdown_sb")
 
 # ---------------------------------------------------------------- MHS
-with tab_mhs:
+if page == "📦 MHS":
     with st.container(border=True):
         st.markdown("#### 📦 MHS — SKU Sold vs Target SKU")
         st.caption("SKU dihitung dari NAMA PRODUK yang sudah dinormalisasi (buang kata 'NEW', spasi, kapitalisasi; "
@@ -1904,7 +1968,7 @@ with tab_mhs:
                          "mhs_summary_per_outlet.xlsx", "dl_mhs_summary")
 
 # ---------------------------------------------------------------- Insentif
-with tab_insentif:
+if page == "🎯 Insentif":
     with st.container(border=True):
         st.markdown("#### 🎯 Insentif — Skema TO Retail, TO Grosir & KLK M245 (Agustus-September 2026)")
         st.caption("Bagian Reward & Punishment (Tagihan, Visit in Radius) TIDAK dihitung sesuai instruksi. "
@@ -1995,7 +2059,7 @@ with tab_insentif:
                              "insentif.xlsx", "dl_insentif")
 
 # ---------------------------------------------------------------- LATO
-with tab_lato:
+if page == "📋 LATO":
     with st.container(border=True):
         st.markdown("#### 📋 LATO — List Outlet & Transaksi")
         st.caption("Semua outlet yang terdaftar di DMP untuk salesman/rayon yang difilter — BUKAN cuma outlet "
@@ -2037,13 +2101,13 @@ with tab_lato:
             download_button(tbl_lato_display, "Download Excel (LATO)", "lato.xlsx", "dl_lato")
 
 # ---------------------------------------------------------------- LTD NPL
-with tab_ltdnpl:
+if page == "🆕 LTD NPL":
     with st.container(border=True):
         st.markdown("#### 🆕 LTD NPL")
         st.info("Menu ini akan dikembangkan lebih lanjut setelah definisi rumus LTD NPL dikonfirmasi.")
 
 # ---------------------------------------------------------------- Paretto
-with tab_paretto:
+if page == "📐 Paretto":
     with st.container(border=True):
         st.markdown("#### 📐 Paretto — Ranking 40 Toko Omzet Tertinggi")
         st.caption("Omzet dihitung neto (Bruto F + Bruto R, sesuai filter Periode/Week yang aktif di sidebar).")
@@ -2075,7 +2139,7 @@ with tab_paretto:
                          "Download Excel (Paretto)", "paretto.xlsx", "dl_pareto")
 
 # ---------------------------------------------------------------- Stock
-with tab_stock:
+if page == "🗃️ Stock":
     with st.container(border=True):
         st.markdown("#### 🗃️ Stock — Stok Tidak Bergerak, Cepat Keluar & Klasifikasi Produk")
         st.markdown(
@@ -2093,15 +2157,29 @@ with tab_stock:
         st.caption("Upload hanya di menu ini. PDF: hanya PDF berbasis teks (hasil cetak/export sistem), bukan hasil scan. "
                    "Baris judul di atas tabel dan header yang berulang tiap halaman dibuang otomatis.")
 
-    if len(stock_files) < 2:
+        # File stok disimpan di sesi supaya tidak hilang saat pindah menu lalu kembali ke Stock.
+        cache = st.session_state.setdefault("stock_cache", {})
+        for f_ in stock_files:
+            cache[f_.name] = f_.getvalue()
+        if cache:
+            cc1, cc2 = st.columns([5, 1])
+            with cc1:
+                st.caption("File stok yang dipakai: " + " · ".join(f"**{n_}**" for n_ in cache))
+            with cc2:
+                if st.button("🗑️ Hapus semua", key="stock_clear"):
+                    st.session_state["stock_cache"] = {}
+                    st.rerun()
+    stock_items = list(st.session_state.get("stock_cache", {}).items())
+
+    if len(stock_items) < 2:
         st.info("Upload minimal 2 file stok (tanggal berbeda) untuk mulai membandingkan.")
     else:
         raws = []
-        for sf in stock_files:
+        for name_, bytes_ in stock_items:
             try:
-                raws.append((sf.name, stock_read_raw(sf.getvalue(), sf.name)))
+                raws.append((name_, stock_read_raw(bytes_, name_)))
             except Exception as e:  # noqa: BLE001
-                st.error(f"File '{sf.name}' gagal dibaca ({type(e).__name__}: {str(e)[:160]}).")
+                st.error(f"File '{name_}' gagal dibaca ({type(e).__name__}: {str(e)[:160]}).")
 
         if len(raws) < 2:
             st.warning("Kurang dari 2 file yang berhasil dibaca.")
@@ -2297,7 +2375,7 @@ with tab_stock:
                         download_button(allc_out, "Download Excel (Klasifikasi Produk)", "klasifikasi_produk.xlsx", "dl_stock_class")
 
 # ---------------------------------------------------------------- Performance SS
-with tab_ss:
+if page == "📈 Performance SS":
     with st.container(border=True):
         st.markdown("#### 📈 Performance SS")
         st.caption("Rekap gabungan dari salesman yang difilter di bawah ini — anggap ini sebagai tim yang "
@@ -2411,7 +2489,7 @@ with tab_ss:
         download_button(tbl_ss, "Download Excel (Performance SS)", "performance_ss.xlsx", "dl_ss")
 
 # ---------------------------------------------------------------- Read Me
-with tab_readme:
+if page == "📖 Read Me":
     with st.container(border=True):
         st.markdown("#### 📖 Standart Produktivity Team M245 (berlaku per 03 Agustus 2026, W32)")
         st.caption("Sumber: Surat No. 001-W/EDP/VII/2026. CB Cover dipakai sebagai pembagi % OA di seluruh "
