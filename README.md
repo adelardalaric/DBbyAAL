@@ -226,3 +226,23 @@ butuh `KODEOUTLET`, `RAYON`, `SALESMAN`, `LASTUPDATE`.
   yang berulang tiap halaman dibuang); PDF laporan teks berkolom dibaca dengan memecah spasi lebar, kolom bernama
   "Kolom 1..N" kalau header tidak terbaca rapi. Ada pratinjau 5 baris pertama untuk memastikan kolomnya benar.
   Library baru: `pdfplumber` (sudah ditambahkan ke requirements.txt).
+
+## Update 3.2 (Capaian Salesman per divisi, menu tanpa scroll, Stock ditulis ulang)
+
+- **Capaian Salesman**: tiap kartu = baris TOTAL (Target | Capaian | % | Gap Harian) + 4 baris divisi di bawahnya
+  (Coffee, Cereal, Instant Food, Homecare) dengan kolom yang sama, Gap Harian merah/hijau per baris. Opsi "Rincian per
+  divisi" sekarang aktif secara default. Gambar PNG ikut memuat rincian divisi (maks. 60 salesman per gambar).
+  Divisi tanpa penjualan tetap tampil (Net Sales 0) selama salesman itu punya target divisi.
+- **Tanpa scroll**: kartu Capaian Salesman tidak lagi punya area scroll sendiri (semua kartu mengalir ke bawah), dan
+  deretan tab menu dibuat turun ke baris berikutnya kalau kepanjangan (bukan scroll horizontal).
+- **Stock** (ditulis ulang, upload tetap di dalam menu Stock):
+  1. Header tabel dicari otomatis (baris judul di atasnya dibuang); kolom Kode/Nama/Qty/Lokasi ditebak otomatis
+     (kolom CTN diutamakan dibanding PCS) dan ditampilkan jelas di atas — bisa diubah di "Kolom yang dipakai".
+  2. **Stok Tidak Bergerak**: produk yang qty-nya sama di semua file & masih > 0 (contoh: Torabika 10 → 10).
+     Kalau file punya kolom lokasi/gudang/bagian, ada ringkasan posisi stok mati per lokasi.
+  3. **Top Produk Paling Cepat Keluar**: diurutkan % stok keluar / qty keluar / kecepatan per hari
+     (contoh: Energen Vanilla 300 → 10 = 96,7%).
+  4. **Klasifikasi Produk**: Sangat Cepat (≥70% keluar), Cepat (≥40%), Sedang (≥15%), Lambat, Stok Bertambah,
+     Tidak Bergerak, Kosong — batasnya bisa diubah di "Pengaturan lanjutan".
+  % keluar = total penurunan stok antar file berurutan ÷ stok tertinggi sebelum file terakhir; restock di
+  tengah periode tidak menutupi pengeluaran.

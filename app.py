@@ -171,7 +171,7 @@ def inject_css():
         border-radius:18px !important; border:1px solid #23232b !important; background:#111116;
     }}
     /* Tab menu bergaya pill */
-    div[data-baseweb="tab-list"] {{ gap:6px; }}
+    div[data-baseweb="tab-list"] {{ gap:6px; row-gap:8px; flex-wrap:wrap !important; overflow:visible !important; height:auto !important; }}
     button[data-baseweb="tab"] {{
         background:#15151b; border:1px solid #23232b; border-radius:999px !important;
         padding:8px 16px !important; margin-right:2px;
@@ -229,6 +229,11 @@ def inject_css():
     table.tbl tr.row-alert td {{ background:#3b1414; color:#fca5a5; }}
     table.tbl td.c-bad {{ color:#f87171; font-weight:700; }}
     table.tbl td.c-ok {{ color:#4ade80; font-weight:700; }}
+    table.tbl td.c-ok2 {{ color:#a3e635; font-weight:700; }}
+    table.tbl td.c-warn {{ color:#fbbf24; font-weight:700; }}
+    table.tbl td.c-slow {{ color:#fb923c; font-weight:700; }}
+    table.tbl td.c-info {{ color:#7dd3fc; font-weight:700; }}
+    table.tbl td.c-mute {{ color:#6b7280; }}
     {_h_css}
     {_pw_css}
 
@@ -242,17 +247,22 @@ def inject_css():
     .dv-bar {{ height:4px; border-radius:4px; background:#23232b; margin-top:9px; overflow:hidden; }}
     .dv-bar span {{ display:block; height:100%; background:{ACCENT}; border-radius:4px; }}
     .dv-bar.ok span {{ background:#22c55e; }}
-    .sc-wrap {{ max-height:640px; overflow:auto; padding-right:2px; }}
+    .sc-wrap {{ padding-right:2px; }}
     .sc-grid {{ display:grid; grid-template-columns:repeat(auto-fill, minmax(460px, 1fr)); gap:10px; }}
     .sc-card {{ border:1px solid #23232b; border-radius:14px; background:#111116; padding:9px 11px; }}
     .sc-head {{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:7px; }}
     .sc-name {{ font-weight:700; font-size:0.88rem; color:#F0F0F7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
     .sc-tag {{ font-size:0.62rem; color:#B9B6F5; border:1px solid #3a3a55; border-radius:999px; padding:1px 8px; white-space:nowrap; }}
     .sc-card .dv-box {{ min-height:auto; padding:5px 8px; }}
-    .sc-div {{ display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-top:7px; }}
-    .sc-chip {{ font-size:0.66rem; color:#b5b5c4; border:1px solid #23232b; border-radius:8px; padding:3px 6px; text-align:center; white-space:nowrap; }}
-    .sc-chip.bad {{ border-color:#7f1d1d; color:#fca5a5; }}
-    .sc-chip.ok {{ border-color:#14532d; color:#86efac; }}
+    .sc-row {{ display:grid; grid-template-columns:92px 1.4fr 1.4fr 0.75fr 1.5fr; gap:6px; align-items:stretch; margin-bottom:5px; }}
+    .sc-lab {{ display:flex; align-items:center; font-size:0.66rem; font-weight:700; color:#B9B6F5; letter-spacing:0.3px; white-space:nowrap; }}
+    .sc-cell {{ border:1px solid #23232b; border-radius:8px; background:#14141a; padding:5px 6px; text-align:center;
+                white-space:nowrap; font-weight:600; color:#E6E6EE; font-size:0.74rem; font-size:clamp(0.54rem, 2.05cqw, 0.8rem); }}
+    .sc-cell.gap-bad {{ border:1.5px solid #ef4444; color:#fca5a5; }}
+    .sc-cell.gap-ok {{ border:1.5px solid #22c55e; color:#86efac; }}
+    .sc-row.sc-total .dv-box {{ min-height:auto; padding:5px 7px; }}
+    .sc-sep {{ height:1px; background:#1f1f27; margin:6px 0 6px; }}
+    .sc-row.sc-divisi {{ margin-bottom:4px; }}
 
     /* Kartu KPI Gap Harian: hijau kalau tercapai, merah kalau belum */
     .kpi-box.kpi-bad {{ border:2px solid #ef4444; }}
@@ -277,6 +287,10 @@ def inject_css():
         .dv-grid {{ grid-template-columns:1fr 1fr; }}
         .dv-grid .dv-value {{ font-size:0.82rem; }}
         .sc-grid {{ grid-template-columns:1fr; }}
+        .sc-row {{ grid-template-columns:70px 1fr 1fr; }}
+        .sc-row > :nth-child(4) {{ grid-column:2; }}
+        .sc-row > :nth-child(5) {{ grid-column:3; }}
+        .sc-cell {{ font-size:0.72rem; }}
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -347,6 +361,9 @@ def show_df(df, height=None, highlight_mask=None, **_ignored):
             cls = ""
             if "Gap" in c:
                 cls = "c-bad" if txt.startswith("-Rp") else ("c-ok" if txt.startswith("✓") else "")
+            elif c == "Klasifikasi":
+                cls = {"Sangat Cepat": "c-ok", "Cepat": "c-ok2", "Sedang": "c-warn", "Lambat": "c-slow",
+                       "Tidak Bergerak": "c-bad", "Stok Bertambah": "c-info", "Kosong": "c-mute"}.get(txt, "")
             tds.append(f'<td class="{cls}">{txt}</td>' if cls else f"<td>{txt}</td>")
         body.append(f'<tr class="row-alert">{"".join(tds)}</tr>' if hl[i] else f'<tr>{"".join(tds)}</tr>')
     h_cls = f" tbl-h-{max(120, min(1000, int(round(height / 20.0)) * 20))}" if height else ""
@@ -1043,9 +1060,17 @@ st.divider()
 # =====================================================================
 # 6. TABS
 # =====================================================================
-def stock_read_pdf(file_bytes: bytes, header_row: int = 0) -> pd.DataFrame:
-    """Baca tabel dari PDF berbasis teks (bukan hasil scan/gambar). Coba deteksi tabel dulu; kalau tidak
-    ada garis tabel, pecah tiap baris teks pada spasi lebar (2+ spasi) seperti laporan ERP."""
+STOCK_HEADER_KW = ("kode", "code", "sku", "pcode", "item", "barang", "nama", "name", "produk", "product", "desc",
+                   "qty", "stok", "stock", "saldo", "jumlah", "ctn", "karton", "carton", "pcs", "gudang", "lokasi",
+                   "warehouse", "satuan", "unit", "bagian")
+STOCK_CLASSES = ["Sangat Cepat", "Cepat", "Sedang", "Lambat", "Stok Bertambah", "Tidak Bergerak", "Kosong"]
+STOCK_CLASS_COLOR = {"Sangat Cepat": "#22c55e", "Cepat": "#a3e635", "Sedang": "#fbbf24", "Lambat": "#fb923c",
+                     "Stok Bertambah": "#7dd3fc", "Tidak Bergerak": "#ef4444", "Kosong": "#6b7280"}
+
+
+def stock_pdf_rows(file_bytes: bytes) -> list:
+    """Baris-baris tabel dari PDF berbasis teks. Coba deteksi tabel bergaris dulu; kalau tidak ada,
+    pecah tiap baris teks pada spasi lebar (2+ spasi) seperti laporan ERP."""
     from io import BytesIO
     try:
         import pdfplumber
@@ -1067,40 +1092,54 @@ def stock_read_pdf(file_bytes: bytes, header_row: int = 0) -> pd.DataFrame:
                         rows.append(parts)
     if not rows:
         raise ValueError("Tidak ada tabel/teks tabular yang terbaca (PDF hasil scan/gambar tidak didukung).")
-    if from_text:
-        # Laporan teks tanpa garis tabel: ambil hanya baris dengan jumlah kolom yang paling umum
-        # (membuang judul/total/nomor halaman). Kalau header ikut terbuang karena jumlah kolomnya
-        # beda, pakai nama kolom generik "Kolom 1..N" — pilih kolomnya lewat dropdown di bawah.
+    if from_text:  # ambil hanya baris dengan jumlah kolom paling umum (buang judul/total/nomor halaman)
         from collections import Counter
         mode_n = Counter(len(r) for r in rows).most_common(1)[0][0]
-        first_ok = len(rows[0]) == mode_n
         rows = [r for r in rows if len(r) == mode_n]
-        if not first_ok:
-            return pd.DataFrame(rows, columns=[f"Kolom {i + 1}" for i in range(mode_n)])
     width = max(len(r) for r in rows)
-    rows = [r + [""] * (width - len(r)) for r in rows]
-    header_row = min(header_row, len(rows) - 1)
-    header = rows[header_row]
-    body = [r for r in rows[header_row + 1:] if r != header]   # buang header yang berulang di tiap halaman
+    return [r + [""] * (width - len(r)) for r in rows]
+
+
+@st.cache_data(show_spinner="Membaca file stok...")
+def stock_read_raw(file_bytes: bytes, file_name: str) -> pd.DataFrame:
+    """Baca file apa adanya (tanpa header) — header dicari otomatis oleh stock_promote_header."""
+    from io import BytesIO, StringIO
+    name = file_name.lower()
+    if name.endswith(".pdf"):
+        return pd.DataFrame(stock_pdf_rows(file_bytes))
+    if name.endswith((".xlsx", ".xls")):
+        return pd.read_excel(BytesIO(file_bytes), header=None, dtype=str)
+    text = file_bytes.decode("utf-8-sig", errors="replace")
+    return pd.read_csv(StringIO(text), sep=None, engine="python", header=None, dtype=str,
+                       index_col=False, on_bad_lines="skip")
+
+
+def stock_promote_header(raw: pd.DataFrame, forced: int | None = None):
+    """Cari baris header (baris dengan kata kunci kolom stok terbanyak di 30 baris pertama) lalu jadikan
+    nama kolom. Baris judul di atas header dan header yang berulang tiap halaman dibuang."""
+    df = raw.fillna("").astype(str)
+    df = df[df.apply(lambda r: any(str(c).strip() for c in r), axis=1)].reset_index(drop=True)
+    if df.empty:
+        return df, 0
+    if forced is None:
+        scan = min(len(df), 30)
+        scores = [sum(1 for c in df.iloc[i] if str(c).strip() and any(k in str(c).lower() for k in STOCK_HEADER_KW))
+                  for i in range(scan)]
+        hdr = int(np.argmax(scores)) if max(scores) > 0 else 0
+    else:
+        hdr = min(max(forced, 0), len(df) - 1)
+    header = [str(c).strip() for c in df.iloc[hdr]]
     cols = []
     for i, h in enumerate(header):
         h = h or f"Kolom {i + 1}"
         while h in cols:
             h += "_"
         cols.append(h)
-    return pd.DataFrame(body, columns=cols)
-
-
-@st.cache_data(show_spinner="Membaca file stok...")
-def stock_read_file(file_bytes: bytes, file_name: str, header_row: int = 0) -> pd.DataFrame:
-    from io import BytesIO
-    name = file_name.lower()
-    if name.endswith(".pdf"):
-        return stock_read_pdf(file_bytes, header_row)
-    buf = BytesIO(file_bytes)
-    if name.endswith((".xlsx", ".xls")):
-        return pd.read_excel(buf, header=header_row, dtype=str)
-    return pd.read_csv(buf, sep=None, engine="python", header=header_row, dtype=str, index_col=False)
+    body = df.iloc[hdr + 1:].copy()
+    body.columns = cols
+    body = body.apply(lambda s: s.str.strip())
+    same_as_header = (body.values == np.array(header, dtype=object)).all(axis=1)
+    return body[~same_as_header].reset_index(drop=True), hdr
 
 
 def stock_guess_date(file_name: str):
@@ -1111,7 +1150,7 @@ def stock_guess_date(file_name: str):
             return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
         except ValueError:
             pass
-    m = re.search(r"(\d{2})[-_.](\d{2})[-_.](20\d{2})", file_name)
+    m = re.search(r"(\d{1,2})[-_.](\d{1,2})[-_.](20\d{2})", file_name)
     if m:
         try:
             return date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
@@ -1136,12 +1175,77 @@ def stock_to_num(s: pd.Series) -> pd.Series:
     return pd.to_numeric(s.apply(conv), errors="coerce").fillna(0)
 
 
-def stock_guess_col(columns, keywords, default_first=True):
-    for kw in keywords:
-        for i, c in enumerate(columns):
-            if kw in str(c).lower():
-                return i
-    return 0 if default_first else None
+def stock_numeric_ratio(s: pd.Series) -> float:
+    v = s.astype(str).str.strip()
+    v = v[v != ""]
+    if v.empty:
+        return 0.0
+    return float(pd.to_numeric(v.str.replace(r"[.,\s\-]", "", regex=True), errors="coerce").notna().mean())
+
+
+def stock_detect_columns(df: pd.DataFrame) -> dict:
+    """Tebak kolom kode / nama / qty / lokasi dari nama kolom. Untuk qty: utamakan kolom CTN/karton,
+    lalu kolom stok/qty/saldo; kalau tidak ketemu, ambil kolom yang paling berisi angka."""
+    cols = [str(c) for c in df.columns]
+    low = [c.lower() for c in cols]
+
+    def find(kws, exclude=()):
+        for kw in kws:
+            for i, c in enumerate(low):
+                if kw in c and not any(x in c for x in exclude):
+                    return cols[i]
+        return None
+
+    kode = find(["pcode", "kode barang", "kode", "sku", "item", "code", "artikel", "material"],
+                exclude=("gudang", "lokasi", "warehouse", "satuan"))
+    nama = find(["nama barang", "nama", "name", "desc", "produk", "product", "barang"], exclude=("kode", "code"))
+    lokasi = find(["gudang", "lokasi", "warehouse", "location", "bagian", "rak"], exclude=("kode",))
+    qty_ex = ("kode", "nama", "name", "isi", "per ", "konv", "harga", "price", "satuan")
+    qty = find(["ctn", "karton", "carton"], exclude=qty_ex) or find(
+        ["qty", "stok", "stock", "saldo", "jumlah", "akhir", "onhand"], exclude=qty_ex)
+    if qty is None or qty in (kode, nama, lokasi):
+        best, best_r = None, 0.0
+        for c in cols:
+            if c in (kode, nama, lokasi):
+                continue
+            r = stock_numeric_ratio(df[c])
+            if r > best_r:
+                best, best_r = c, r
+        qty = best
+    if kode is None and nama is None and cols:
+        kode = cols[0]
+    return {"kode": kode, "nama": nama, "qty": qty, "lokasi": lokasi}
+
+
+def stock_compute(snaps: list, names_map: dict, has_loc: bool, thr=(70, 40, 15)):
+    """snaps: [(date, Series qty per (Lokasi,)Kode)] urut tanggal. Return (res, date_cols, n_days).
+    Klasifikasi (dari % stok yang keluar terhadap stok tertinggi sebelum snapshot terakhir):
+    Tidak Bergerak = qty sama di semua file & > 0 | Stok Bertambah = hanya ada tambahan, belum keluar |
+    Sangat Cepat / Cepat / Sedang / Lambat = % keluar >= thr[0] / thr[1] / thr[2] / sisanya | Kosong = selalu 0."""
+    date_cols = [d.strftime("%d %b %Y") for d, _ in snaps]
+    wide = pd.concat([s for _, s in snaps], axis=1).fillna(0)
+    wide.columns = date_cols
+    wide.index.names = ["Lokasi", "Kode"] if has_loc else ["Kode"]
+    vals = wide.to_numpy(dtype=float)
+    diffs = vals[:, 1:] - vals[:, :-1]
+    keluar = np.clip(-diffs, 0, None).sum(axis=1)
+    masuk = np.clip(diffs, 0, None).sum(axis=1)
+    base = vals[:, :-1].max(axis=1)
+    pct = np.where(base > 0, np.minimum(keluar / np.where(base > 0, base, 1) * 100, 100), np.nan)
+    n_days = max((snaps[-1][0] - snaps[0][0]).days, 0)
+    static = (vals.max(axis=1) == vals.min(axis=1)) & (vals[:, -1] > 0)
+    kosong = vals.max(axis=1) == 0
+    klas = np.select(
+        [kosong, static, keluar == 0, pct >= thr[0], pct >= thr[1], pct >= thr[2]],
+        ["Kosong", "Tidak Bergerak", "Stok Bertambah", "Sangat Cepat", "Cepat", "Sedang"], default="Lambat")
+    res = wide.reset_index()
+    res.insert(len(wide.index.names), "Nama Produk", res["Kode"].map(names_map))
+    res["Keluar"] = keluar
+    res["Masuk"] = masuk
+    res["% Keluar"] = np.round(pct, 1)
+    res["Keluar/Hari"] = np.round(keluar / n_days, 1) if n_days > 0 else np.nan
+    res["Klasifikasi"] = klas
+    return res, date_cols, n_days
 
 
 MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
@@ -1229,12 +1333,18 @@ def trend_figure(cur: pd.DataFrame, prev: pd.DataFrame | None, gran: str, metric
 
 
 def hitung_divisi_long(df_scope: pd.DataFrame) -> pd.DataFrame:
-    """Capaian per Salesman x Divisi (5/6/8/16): Target (sheet Target Divisi), Net Sales, % Capaian, Gap Harian."""
+    """Capaian per Salesman x Divisi (5/6/8/16): Target (sheet Target Divisi), Net Sales, % Capaian, Gap Harian.
+    Setiap salesman SELALU punya 4 baris divisi — divisi tanpa penjualan tetap tampil (Net Sales 0)
+    supaya target yang belum tersentuh tidak hilang dari perhitungan."""
     cols = ["Salesman", "Divisi", "Target", "Net Sales", "% Capaian", "Gap Harian"]
     if df_scope.empty:
         return pd.DataFrame(columns=cols)
-    d = net_by_group(df_scope, [COL["kode_sales"], COL["salesman"], "_divisi_norm"], "Net Sales")
-    d = d[d["_divisi_norm"].isin(DIVISI_LABEL.keys())].copy()
+    sm = df_scope[[COL["kode_sales"], COL["salesman"]]].drop_duplicates()
+    grid = sm.merge(pd.DataFrame({"_divisi_norm": list(DIVISI_LABEL.keys())}), how="cross")
+    net = net_by_group(df_scope, [COL["kode_sales"], COL["salesman"], "_divisi_norm"], "Net Sales")
+    net = net[[COL["kode_sales"], COL["salesman"], "_divisi_norm", "Net Sales"]]
+    d = grid.merge(net, on=[COL["kode_sales"], COL["salesman"], "_divisi_norm"], how="left")
+    d["Net Sales"] = d["Net Sales"].fillna(0)
     d["Divisi"] = d["_divisi_norm"].map(DIVISI_LABEL)
     if not target_divisi.empty:
         t = target_divisi.copy()
@@ -1300,82 +1410,108 @@ def _pil_font(size: int, bold: bool = False):
         return ImageFont.load_default()
 
 
-def salesman_card_html(name: str, team: str, tgt, cap, chips: list | None = None) -> str:
+def salesman_card_html(name: str, team: str, tgt, cap, div_rows: list | None = None) -> str:
+    """Kartu ringkas satu salesman: baris TOTAL (kotak berlabel) + optional 4 baris divisi di bawahnya.
+    div_rows: list of (icon, label, target, capaian)."""
     import html as _html
     pct = (cap / tgt * 100) if pd.notna(tgt) and tgt else np.nan
-    css, gtxt, gsub = gap_state(tgt, cap)
+    css, gtxt, _ = gap_state(tgt, cap)
     tag = f'<span class="sc-tag">{_html.escape(team)}</span>' if team and team != "Lainnya" else ""
-    chip_html = ""
-    if chips:
-        chip_html = '<div class="sc-div">' + "".join(
-            f'<div class="sc-chip {c_state}">{icon} {txt}</div>' for icon, txt, c_state in chips) + "</div>"
-    return ('<div class="sc-card">'
-            f'<div class="sc-head"><span class="sc-name">{_html.escape(name)}</span>{tag}</div>'
-            '<div class="dv-grid">'
-            + box_html("Target", fmt_rp(tgt)) + box_html("Capaian", fmt_rp(cap))
-            + box_html("%", fmt_pct(pct)) + box_html("Gap Harian", gtxt, "", css)
-            + "</div>" + bar_html(pct) + chip_html + "</div>")
+    out = ['<div class="sc-card">',
+           f'<div class="sc-head"><span class="sc-name">{_html.escape(name)}</span>{tag}</div>',
+           '<div class="sc-row sc-total"><div class="sc-lab">Σ TOTAL</div>',
+           box_html("Target", fmt_rp(tgt)), box_html("Capaian", fmt_rp(cap)), box_html("%", fmt_pct(pct)),
+           box_html("Gap Harian", gtxt, "", css), "</div>", bar_html(pct)]
+    if div_rows:
+        out.append('<div class="sc-sep"></div>')
+        for icon, lbl, d_tgt, d_cap in div_rows:
+            d_pct = (d_cap / d_tgt * 100) if pd.notna(d_tgt) and d_tgt else np.nan
+            d_css, d_gtxt, _ = gap_state(d_tgt, d_cap)
+            g_cls = {"dv-gap-ok": " gap-ok", "dv-gap-bad": " gap-bad"}.get(d_css, "")
+            out.append(f'<div class="sc-row sc-divisi"><div class="sc-lab">{icon} {lbl}</div>'
+                       f'<div class="sc-cell">{fmt_rp(d_tgt)}</div><div class="sc-cell">{fmt_rp(d_cap)}</div>'
+                       f'<div class="sc-cell">{fmt_pct(d_pct)}</div><div class="sc-cell{g_cls}">{d_gtxt}</div></div>')
+    out.append("</div>")
+    return "".join(out)
 
 
 def render_capaian_png(rows: list, title: str, subtitle: str) -> bytes:
-    """Gambar PNG ringkas semua kartu salesman — untuk dibagikan lewat WhatsApp dsb.
-    rows: dict(name, team, tgt, cap, chips=[(label, pct_txt, state)])."""
+    """Gambar PNG semua kartu salesman untuk dibagikan (WhatsApp dsb).
+    rows: dict(name, team, tgt, cap, divisi=[(label, tgt, cap), ...] atau None)."""
     from io import BytesIO
     from PIL import Image, ImageDraw
     W, PAD, GAP = 1120, 24, 12
+    LAB_W, CG = 104, 6
     f_title, f_sub, f_name = _pil_font(30, True), _pil_font(15), _pil_font(19, True)
     f_lab, f_val, f_small = _pil_font(12), _pil_font(17, True), _pil_font(11)
-    has_chips = any(r.get("chips") for r in rows)
-    card_h = 118 + (30 if has_chips else 0)
-    H = PAD + 78 + len(rows) * (card_h + GAP) + 44
+    f_dlab, f_dval = _pil_font(12, True), _pil_font(13, True)
+    weights = [1.4, 1.4, 0.75, 1.5]
+    inner_x0, inner_w = PAD + 12, W - 2 * PAD - 24
+    unit = (inner_w - LAB_W - 4 * CG) / sum(weights)
+
+    def card_height(r):
+        n_div = len(r["divisi"]) if r.get("divisi") else 0
+        return 40 + 56 + 13 + (10 + n_div * 30 if n_div else 0) + 12
+
+    H = PAD + 78 + sum(card_height(r) + GAP for r in rows) + 44
     img = Image.new("RGB", (W, max(H, 200)), "#0B0B0F")
     d = ImageDraw.Draw(img)
     d.text((PAD, PAD), title, font=f_title, fill="#F3A6E9")
     d.text((PAD, PAD + 42), subtitle, font=f_sub, fill="#9A9AA8")
     y = PAD + 78
-    inner_w = W - 2 * PAD - 24
-    weights = [1.4, 1.4, 0.75, 1.5]
-    unit = (inner_w - 3 * 8) / sum(weights)
+
+    def col_x(i):  # x awal & lebar kolom ke-i (0..3)
+        x = inner_x0 + LAB_W + CG + sum(weights[:i]) * unit + i * CG
+        return x, weights[i] * unit
+
     for r in rows:
         tgt, cap = r["tgt"], r["cap"]
+        ch = card_height(r)
         pct = (cap / tgt * 100) if pd.notna(tgt) and tgt else np.nan
-        css, gtxt, gsub = gap_state(tgt, cap)
+        css, gtxt, _ = gap_state(tgt, cap)
         gtxt = gtxt.replace("✓ ", "")
-        d.rounded_rectangle([PAD, y, W - PAD, y + card_h], radius=14, fill="#111116", outline="#23232b", width=1)
-        d.text((PAD + 12, y + 9), r["name"], font=f_name, fill="#F0F0F7")
+        d.rounded_rectangle([PAD, y, W - PAD, y + ch], radius=14, fill="#111116", outline="#23232b", width=1)
+        d.text((inner_x0, y + 9), r["name"], font=f_name, fill="#F0F0F7")
         if r.get("team") and r["team"] != "Lainnya":
             tw = d.textlength(r["team"], font=f_small)
             d.rounded_rectangle([W - PAD - 12 - tw - 16, y + 10, W - PAD - 12, y + 30], radius=10, outline="#3a3a55", width=1)
             d.text((W - PAD - 12 - tw - 8, y + 14), r["team"], font=f_small, fill="#B9B6F5")
-        bx = PAD + 12
         by = y + 40
-        items = [("TARGET", fmt_rp(tgt), "#F3F4F6", "#2a2a33", 1), ("CAPAIAN", fmt_rp(cap), "#F3F4F6", "#2a2a33", 1),
-                 ("%", fmt_pct(pct), "#F3F4F6", "#2a2a33", 1),
-                 ("GAP HARIAN", gtxt, "#86EFAC" if css == "dv-gap-ok" else ("#FCA5A5" if css == "dv-gap-bad" else "#F3F4F6"),
-                  "#22c55e" if css == "dv-gap-ok" else ("#ef4444" if css == "dv-gap-bad" else "#2a2a33"),
-                  2 if css else 1)]
-        for wgt, (lab, val, vcol, ocol, ow) in zip(weights, items):
-            bw = unit * wgt
-            d.rounded_rectangle([bx, by, bx + bw, by + 56], radius=10, fill="#14141a", outline=ocol, width=ow)
-            d.text((bx + 9, by + 7), lab, font=f_lab, fill="#8b8b98")
-            d.text((bx + 9, by + 27), val, font=f_val, fill=vcol)
-            bx += bw + 8
+        d.text((inner_x0, by + 20), "TOTAL", font=f_dlab, fill="#B9B6F5")
+        vals = [("TARGET", fmt_rp(tgt), "#F3F4F6", "#2a2a33", 1), ("CAPAIAN", fmt_rp(cap), "#F3F4F6", "#2a2a33", 1),
+                ("%", fmt_pct(pct), "#F3F4F6", "#2a2a33", 1),
+                ("GAP HARIAN", gtxt, "#86EFAC" if css == "dv-gap-ok" else ("#FCA5A5" if css == "dv-gap-bad" else "#F3F4F6"),
+                 "#22c55e" if css == "dv-gap-ok" else ("#ef4444" if css == "dv-gap-bad" else "#2a2a33"), 2 if css else 1)]
+        for i, (lab, val, vcol, ocol, ow) in enumerate(vals):
+            x, w = col_x(i)
+            d.rounded_rectangle([x, by, x + w, by + 56], radius=10, fill="#14141a", outline=ocol, width=ow)
+            d.text((x + 9, by + 7), lab, font=f_lab, fill="#8b8b98")
+            d.text((x + 9, by + 27), val, font=f_val, fill=vcol)
         bar_y = by + 56 + 9
-        d.rounded_rectangle([PAD + 12, bar_y, W - PAD - 12, bar_y + 4], radius=2, fill="#23232b")
+        d.rounded_rectangle([inner_x0, bar_y, inner_x0 + inner_w, bar_y + 4], radius=2, fill="#23232b")
         if pd.notna(pct):
-            fill_w = (W - 2 * PAD - 24) * max(0, min(100, pct)) / 100
-            if fill_w > 2:
-                d.rounded_rectangle([PAD + 12, bar_y, PAD + 12 + fill_w, bar_y + 4], radius=2,
+            fw = inner_w * max(0, min(100, pct)) / 100
+            if fw > 2:
+                d.rounded_rectangle([inner_x0, bar_y, inner_x0 + fw, bar_y + 4], radius=2,
                                     fill="#22c55e" if pct >= 100 else "#F3A6E9")
-        if r.get("chips"):
-            cx = PAD + 12
-            cw = (inner_w - 3 * 6) / 4
-            for lab, ptxt, state in r["chips"]:
-                col = "#86EFAC" if state == "ok" else ("#FCA5A5" if state == "bad" else "#b5b5c4")
-                d.rounded_rectangle([cx, bar_y + 12, cx + cw, bar_y + 32], radius=8, outline="#23232b", width=1)
-                d.text((cx + 8, bar_y + 16), f"{lab} {ptxt}", font=f_small, fill=col)
-                cx += cw + 6
-        y += card_h + GAP
+        if r.get("divisi"):
+            ry = bar_y + 4 + 10
+            for lbl, d_tgt, d_cap in r["divisi"]:
+                d_pct = (d_cap / d_tgt * 100) if pd.notna(d_tgt) and d_tgt else np.nan
+                d_css, d_gtxt, _ = gap_state(d_tgt, d_cap)
+                d_gtxt = d_gtxt.replace("✓ ", "")
+                d.text((inner_x0, ry + 6), lbl, font=f_dlab, fill="#B9B6F5")
+                cells = [(fmt_rp(d_tgt), "#E6E6EE", "#23232b", 1), (fmt_rp(d_cap), "#E6E6EE", "#23232b", 1),
+                         (fmt_pct(d_pct), "#E6E6EE", "#23232b", 1),
+                         (d_gtxt, "#86EFAC" if d_css == "dv-gap-ok" else ("#FCA5A5" if d_css == "dv-gap-bad" else "#E6E6EE"),
+                          "#22c55e" if d_css == "dv-gap-ok" else ("#ef4444" if d_css == "dv-gap-bad" else "#23232b"),
+                          2 if d_css else 1)]
+                for i, (txt, tcol, ocol, ow) in enumerate(cells):
+                    x, w = col_x(i)
+                    d.rounded_rectangle([x, ry, x + w, ry + 26], radius=7, fill="#14141a", outline=ocol, width=ow)
+                    d.text((x + 8, ry + 6), txt, font=f_dval, fill=tcol)
+                ry += 30
+        y += ch + GAP
     foot = "© Created by Adelard"
     d.text(((W - d.textlength(foot, font=f_sub)) / 2, y + 6), foot, font=f_sub, fill="#8b8b98")
     buf = BytesIO()
@@ -1533,8 +1669,9 @@ with tab_sales:
 with tab_salcard:
     with st.container(border=True):
         st.markdown("#### 📇 Capaian Salesman — kartu ringkas untuk dibagikan")
-        st.caption("Satu kartu per salesman: Target, Capaian, %, dan Gap Harian (merah = belum tercapai, hijau = "
-                   "tercapai). Ikut filter Periode/Week di sidebar. Tombol PNG di bawah membuat gambar siap kirim.")
+        st.caption("Satu kartu per salesman: baris TOTAL (Target, Capaian, %, Gap Harian) lalu rincian tiap divisi "
+                   "di bawahnya. Gap Harian merah = belum tercapai, hijau = tercapai. Ikut filter Periode/Week "
+                   "di sidebar. Tombol PNG di bawah membuat gambar siap kirim.")
         fc1, fc2, fc3 = st.columns([3, 1.6, 1.4])
         with fc1:
             sel_card = st.multiselect("Filter salesman", salesman_terpilih, default=salesman_terpilih,
@@ -1543,7 +1680,7 @@ with tab_salcard:
             sort_card = st.selectbox("Urutkan", ["Nama A–Z", "% Capaian tertinggi", "% Capaian terendah", "Net Sales tertinggi"],
                                       key="salcard_sort")
         with fc3:
-            show_div_card = st.checkbox("Rincian per divisi", value=False, key="salcard_div")
+            show_div_card = st.checkbox("Rincian per divisi", value=True, key="salcard_div")
 
     data_card = ringkasan_sales[ringkasan_sales["Salesman"].isin(sel_card)].copy()
     if sort_card == "Nama A–Z":
@@ -1558,34 +1695,29 @@ with tab_salcard:
     div_by_sales = {}
     if show_div_card and not data_card.empty:
         dl = hitung_divisi_long(df_filtered[df_filtered[COL["salesman"]].isin(sel_card)])
-        for (sm, lbl), g in dl.groupby(["Salesman", "Divisi"]):
-            p = g["% Capaian"].iloc[0]
-            state = "" if pd.isna(p) else ("ok" if p >= 100 else "bad")
-            div_by_sales.setdefault(sm, {})[lbl] = (DIV_ICON[lbl], lbl, fmt_pct(p), state)
+        for _, x_ in dl.iterrows():
+            div_by_sales.setdefault(x_["Salesman"], {})[x_["Divisi"]] = (x_["Target"], x_["Net Sales"])
 
     rows_png, cards_html = [], []
     for _, r in data_card.iterrows():
-        chips = None
+        tgt_c = r["Target"] if pd.notna(r["Target"]) else np.nan
+        div_rows = None
         if show_div_card:
             got = div_by_sales.get(r["Salesman"], {})
-            chips = [got.get(lbl, (DIV_ICON[lbl], lbl, "-", "")) for lbl in DIVISI_LABEL.values()]
-            chips_html = [(ic, f"{pt}", stt) for ic, _lb, pt, stt in chips]
-        else:
-            chips_html = None
-        tgt_c = r["Target"] if pd.notna(r["Target"]) else np.nan
-        cards_html.append(salesman_card_html(r["Salesman"], r["Team"], tgt_c, r["Net Sales"], chips_html))
+            div_rows = [(DIV_ICON[lbl], lbl, *got.get(lbl, (np.nan, 0))) for lbl in DIVISI_LABEL.values()]
+        cards_html.append(salesman_card_html(r["Salesman"], r["Team"], tgt_c, r["Net Sales"], div_rows))
         rows_png.append({"name": r["Salesman"], "team": r["Team"], "tgt": tgt_c, "cap": r["Net Sales"],
-                         "chips": [(lb, pt, stt) for _ic, lb, pt, stt in chips] if chips else None})
+                         "divisi": [(lbl, t_, c_) for _ic, lbl, t_, c_ in div_rows] if div_rows else None})
 
     if not cards_html:
         st.info("Pilih minimal 1 salesman.")
     else:
         st.markdown('<div class="sc-wrap"><div class="sc-grid">' + "".join(cards_html) + "</div></div>",
                     unsafe_allow_html=True)
-        png_rows = rows_png[:80]
+        png_rows = rows_png[:60]
         png_bytes = render_capaian_png(png_rows, "Capaian Salesman",
                                        f"Periode {', '.join(map(str, periode_sel)) or '-'}  |  HKE {hke}"
-                                       + (f"  |  ditampilkan {len(png_rows)} dari {len(rows_png)} salesman" if len(rows_png) > 80 else ""))
+                                       + (f"  |  ditampilkan {len(png_rows)} dari {len(rows_png)} salesman" if len(rows_png) > 60 else ""))
         st.download_button("⬇️ Download gambar (PNG) untuk dibagikan", data=png_bytes,
                            file_name="capaian_salesman.png", mime="image/png", key="dl_salcard_png")
 
@@ -1945,137 +2077,224 @@ with tab_paretto:
 # ---------------------------------------------------------------- Stock
 with tab_stock:
     with st.container(border=True):
-        st.markdown("#### 🗃️ Stock — Stok Tidak Bergerak & Paling Cepat Bergerak")
-        st.caption("Upload di sini saja (tidak lewat menu Option). Upload 2 file stok atau lebih dengan tanggal "
-                   "berbeda — sistem membandingkan stok antar file. **Tidak bergerak** = qty stok identik di SEMUA "
-                   "file dan masih > 0. **Cepat bergerak** = total penurunan stok antar file berurutan (kalau ada "
-                   "restock di antara dua file, pengeluaran bisa terbaca lebih kecil dari aslinya).")
-        stock_files = st.file_uploader("Upload file stok (.xlsx / .xls / .csv / .txt / .pdf)",
-                                        type=["xlsx", "xls", "csv", "txt", "pdf"], accept_multiple_files=True,
-                                        key="stock_uploader")
-        stock_header = st.number_input("Baris header di file (0 = baris pertama)", min_value=0, value=0, step=1,
-                                        key="stock_header_row",
-                                        help="Untuk PDF: hitung dari baris tabel pertama yang terbaca.")
-        st.caption("PDF: hanya PDF berbasis teks (hasil cetak/export sistem) — PDF hasil scan/foto tidak bisa "
-                   "dibaca. Header yang berulang di tiap halaman otomatis dibuang.")
+        st.markdown("#### 🗃️ Stock — Stok Tidak Bergerak, Cepat Keluar & Klasifikasi Produk")
+        st.markdown(
+            "**Cara membaca** (upload minimal 2 file stok dengan tanggal berbeda):  \n"
+            "🧊 **Tidak bergerak** — mis. *Torabika bubuk* tgl 25 = 10 ctn, tgl 26 = 10 ctn → stok sama, tidak ada yang keluar.  \n"
+            "🚀 **Sangat cepat keluar** — mis. *Energen Vanilla* tgl 25 = 300, tgl 26 = 10 → 97% stok sudah keluar.  \n"
+            "🏷️ Di bagian bawah, semua produk diklasifikasikan: Sangat Cepat, Cepat, Sedang, Lambat, Tidak Bergerak, dst.")
+        cu1, cu2 = st.columns([4, 1])
+        with cu1:
+            stock_files = st.file_uploader("Upload file stok (.xlsx / .xls / .csv / .txt / .pdf)",
+                                            type=["xlsx", "xls", "csv", "txt", "pdf"], accept_multiple_files=True,
+                                            key="stock_uploader")
+        with cu2:
+            stock_unit = st.text_input("Satuan qty", value="ctn", key="stock_unit")
+        st.caption("Upload hanya di menu ini. PDF: hanya PDF berbasis teks (hasil cetak/export sistem), bukan hasil scan. "
+                   "Baris judul di atas tabel dan header yang berulang tiap halaman dibuang otomatis.")
 
     if len(stock_files) < 2:
         st.info("Upload minimal 2 file stok (tanggal berbeda) untuk mulai membandingkan.")
     else:
-        stock_loaded = []
+        raws = []
         for sf in stock_files:
             try:
-                stock_loaded.append((sf.name, stock_read_file(sf.getvalue(), sf.name, int(stock_header))))
+                raws.append((sf.name, stock_read_raw(sf.getvalue(), sf.name)))
             except Exception as e:  # noqa: BLE001
-                st.error(f"File '{sf.name}' gagal dibaca ({type(e).__name__}: {str(e)[:160]}). Coba atur 'Baris header'.")
+                st.error(f"File '{sf.name}' gagal dibaca ({type(e).__name__}: {str(e)[:160]}).")
 
-        if len(stock_loaded) < 2:
+        if len(raws) < 2:
             st.warning("Kurang dari 2 file yang berhasil dibaca.")
         else:
-            cols0 = [str(c) for c in stock_loaded[0][1].columns]
-            with st.container(border=True):
-                st.markdown("**Pengaturan kolom & tanggal**")
-                st.caption(f"Pratinjau 5 baris pertama dari '{stock_loaded[0][0]}' (untuk memastikan kolom terbaca benar):")
-                show_df(stock_loaded[0][1].head(5))
+            with st.expander("⚙️ Pengaturan lanjutan (biasanya tidak perlu diubah)"):
+                sa1, sa2, sa3, sa4 = st.columns(4)
+                with sa1:
+                    hdr_manual = st.number_input("Baris header (-1 = otomatis)", min_value=-1, max_value=200, value=-1,
+                                                  key="stock_hdr")
+                with sa2:
+                    thr_sc = st.number_input("Sangat Cepat jika % keluar ≥", 1, 100, 70, key="stock_thr1")
+                with sa3:
+                    thr_c = st.number_input("Cepat jika % keluar ≥", 1, 100, 40, key="stock_thr2")
+                with sa4:
+                    thr_s = st.number_input("Sedang jika % keluar ≥", 1, 100, 15, key="stock_thr3")
+                st.caption("Di bawah batas 'Sedang' = Lambat. % keluar = total stok yang berkurang ÷ stok tertinggi "
+                           "sebelum file terakhir.")
+
+            frames = []
+            for fname, raw in raws:
+                df_s, hdr_idx = stock_promote_header(raw, None if hdr_manual < 0 else int(hdr_manual))
+                frames.append((fname, df_s, hdr_idx))
+            cols0 = [str(c) for c in frames[0][1].columns]
+            det = stock_detect_columns(frames[0][1])
+            sig = hashlib.md5("|".join(cols0).encode()).hexdigest()[:6]
+
+            with st.expander("🔧 Kolom yang dipakai (terdeteksi otomatis — klik untuk mengubah)"):
                 m1, m2, m3, m4 = st.columns(4)
                 with m1:
-                    c_kode = st.selectbox("Kolom Kode Produk", cols0,
-                                           index=stock_guess_col(cols0, ["pcode", "kode", "sku", "item", "code"]), key="stock_c_kode")
+                    c_kode = st.selectbox("Kolom Kode Produk", ["(tidak ada)"] + cols0,
+                                           index=(1 + cols0.index(det["kode"])) if det["kode"] in cols0 else 0, key=f"stock_ck_{sig}")
                 with m2:
-                    _g_nama = stock_guess_col(cols0, ["nama", "name", "desc", "produk"], default_first=False)
                     c_nama = st.selectbox("Kolom Nama Produk", ["(tidak ada)"] + cols0,
-                                           index=0 if _g_nama is None else 1 + _g_nama, key="stock_c_nama")
+                                           index=(1 + cols0.index(det["nama"])) if det["nama"] in cols0 else 0, key=f"stock_cn_{sig}")
                 with m3:
                     c_qty = st.selectbox("Kolom Qty Stok", cols0,
-                                          index=stock_guess_col(cols0, ["qty", "stok", "stock", "saldo", "jumlah"]), key="stock_c_qty")
+                                          index=cols0.index(det["qty"]) if det["qty"] in cols0 else 0, key=f"stock_cq_{sig}")
                 with m4:
-                    c_gud = st.selectbox("Kolom Gudang/Lokasi (opsional)", ["(tidak ada)"] + cols0, index=0, key="stock_c_gud")
+                    c_loc = st.selectbox("Kolom Lokasi/Gudang/Bagian", ["(tidak ada)"] + cols0,
+                                          index=(1 + cols0.index(det["lokasi"])) if det["lokasi"] in cols0 else 0, key=f"stock_cl_{sig}")
+                st.caption(f"Pratinjau 5 baris pertama '{frames[0][0]}' (header terbaca di baris ke-{frames[0][2] + 1}):")
+                show_df(frames[0][1].head(5))
 
+            key_col = c_kode if c_kode != "(tidak ada)" else c_nama
+            has_loc = c_loc != "(tidak ada)"
+            if key_col == "(tidak ada)":
+                st.error("Pilih minimal kolom Kode atau Nama Produk di 'Kolom yang dipakai'.")
+            else:
+                st.success(f"Kolom dipakai → Produk: **{key_col}** · Qty: **{c_qty}** (satuan: {stock_unit})"
+                           + (f" · Lokasi: **{c_loc}**" if has_loc else " · Lokasi: -"))
                 from datetime import date as _date
-                st.markdown("Tanggal tiap file (ditebak dari nama file, bisa dikoreksi):")
-                date_cols = st.columns(min(len(stock_loaded), 4))
+                st.markdown("**📅 Tanggal tiap file** (ditebak dari nama file — koreksi kalau salah):")
+                date_cols_ui = st.columns(min(len(frames), 4))
                 stock_dates = []
-                for i, (fname, _) in enumerate(stock_loaded):
-                    with date_cols[i % len(date_cols)]:
+                for i, (fname, _df, _h) in enumerate(frames):
+                    with date_cols_ui[i % len(date_cols_ui)]:
                         stock_dates.append(st.date_input(fname, value=stock_guess_date(fname) or _date.today(),
                                                           key=f"stock_date_{fname}_{i}"))
 
-            keys = ["Kode"] + (["Gudang"] if c_gud != "(tidak ada)" else [])
-            snaps, names_map, problems = [], {}, []
-            for (fname, df_s), dt in zip(stock_loaded, stock_dates):
-                df_s.columns = [str(c) for c in df_s.columns]
-                needed = [c_kode, c_qty] + ([c_gud] if c_gud != "(tidak ada)" else [])
-                if any(c not in df_s.columns for c in needed):
-                    problems.append(fname)
-                    continue
-                t = pd.DataFrame({"Kode": df_s[c_kode].astype(str).str.strip(), "qty": stock_to_num(df_s[c_qty])})
-                if c_gud != "(tidak ada)":
-                    t["Gudang"] = df_s[c_gud].astype(str).str.strip()
-                if c_nama != "(tidak ada)" and c_nama in df_s.columns:
-                    names_map.update(dict(zip(t["Kode"], df_s[c_nama].astype(str).str.strip())))
-                snaps.append((dt, t[t["Kode"].ne("") & t["Kode"].ne("nan")].groupby(keys)["qty"].sum()))
-            if problems:
-                st.warning("Kolom yang dipilih tidak ditemukan di file: " + ", ".join(problems) + " — file ini dilewati.")
+                snaps, names_map, problems = [], {}, []
+                for (fname, df_s, _h), dt in zip(frames, stock_dates):
+                    df_s.columns = [str(c) for c in df_s.columns]
+                    need = [key_col, c_qty] + ([c_loc] if has_loc else [])
+                    if any(c not in df_s.columns for c in need):
+                        problems.append(fname)
+                        continue
+                    t = pd.DataFrame({"Kode": df_s[key_col].astype(str).str.strip(), "qty": stock_to_num(df_s[c_qty])})
+                    if has_loc:
+                        t["Lokasi"] = df_s[c_loc].astype(str).str.strip()
+                    if c_nama != "(tidak ada)" and c_nama in df_s.columns:
+                        names_map.update(dict(zip(t["Kode"], df_s[c_nama].astype(str).str.strip())))
+                    t = t[t["Kode"].ne("") & t["Kode"].ne("nan")]
+                    snaps.append((dt, t.groupby((["Lokasi"] if has_loc else []) + ["Kode"])["qty"].sum()))
+                if problems:
+                    st.warning("Kolom yang dipilih tidak ada di file: " + ", ".join(problems) + " — file ini dilewati.")
 
-            snaps.sort(key=lambda x: x[0])
-            if len(snaps) < 2:
-                st.warning("Butuh minimal 2 file dengan kolom yang sesuai untuk dibandingkan.")
-            elif len({d for d, _ in snaps}) < len(snaps):
-                st.warning("Ada file dengan tanggal yang sama — koreksi tanggalnya supaya urutan perbandingan benar.")
-            else:
-                wide = pd.concat({d.strftime("%d %b %Y"): s for d, s in snaps}, axis=1).fillna(0)
-                date_labels = list(wide.columns)
-                vals = wide.to_numpy(dtype=float)
-                n_days = (snaps[-1][0] - snaps[0][0]).days
-                outflow = np.clip(vals[:, :-1] - vals[:, 1:], 0, None).sum(axis=1)
+                snaps.sort(key=lambda x: x[0])
+                if len(snaps) < 2:
+                    st.warning("Butuh minimal 2 file dengan kolom yang sesuai untuk dibandingkan.")
+                elif len({d for d, _ in snaps}) < len(snaps):
+                    st.warning("Ada file dengan tanggal yang sama — koreksi tanggalnya supaya urutan perbandingan benar.")
+                else:
+                    res, date_cols, n_days = stock_compute(snaps, names_map, has_loc, (thr_sc, thr_c, thr_s))
+                    if c_nama == "(tidak ada)":
+                        res["Nama Produk"] = res["Kode"]
+                    loc_cols = ["Lokasi"] if has_loc else []
+                    base_cols = loc_cols + ["Kode", "Nama Produk"]
+                    u = stock_unit.strip() or "qty"
+                    last_col, first_col = date_cols[-1], date_cols[0]
 
-                res = wide.copy()
-                res["Total Keluar (penurunan stok)"] = outflow
-                res["Rata-rata Keluar/Hari"] = (outflow / n_days) if n_days > 0 else np.nan
-                res = res.reset_index()
-                res.insert(1 if "Gudang" not in res.columns else 2, "Nama Produk", res["Kode"].map(names_map))
-                mask_static = (vals.max(axis=1) == vals.min(axis=1)) & (vals[:, -1] > 0)
+                    def show_fmt(d_):
+                        o = d_.copy()
+                        o["% Keluar"] = o["% Keluar"].apply(lambda v: "-" if pd.isna(v) else f"{v:.1f}%")
+                        return o.rename(columns={"Keluar": f"Keluar ({u})", "Masuk": f"Masuk ({u})",
+                                                 "Keluar/Hari": f"Keluar/Hari ({u})"})
 
-                non_moving = res[mask_static].sort_values(date_labels[-1], ascending=False)
-                top_n = st.slider("Jumlah produk teratas (cepat bergerak)", 5, 50, 20, key="stock_topn")
-                fast = res[res["Total Keluar (penurunan stok)"] > 0] \
-                    .sort_values("Total Keluar (penurunan stok)", ascending=False).head(top_n)
+                    nm = res[res["Klasifikasi"] == "Tidak Bergerak"].sort_values(last_col, ascending=False)
+                    sc = res[res["Klasifikasi"] == "Sangat Cepat"]
 
-                k1s, k2s, k3s, k4s = st.columns(4)
-                with k1s:
-                    kpi_card("🧊", "SKU Tidak Bergerak", f"{len(non_moving):,}")
-                with k2s:
-                    kpi_card("📦", "Total Qty Tidak Bergerak", f"{non_moving[date_labels[-1]].sum():,.0f}")
-                with k3s:
-                    kpi_card("🔍", "SKU Dianalisa", f"{len(res):,}")
-                with k4s:
-                    kpi_card("📅", "Rentang Data", f"{n_days} hari", f"{date_labels[0]} → {date_labels[-1]}")
+                    k1s, k2s, k3s, k4s = st.columns(4)
+                    with k1s:
+                        kpi_card("🧊", "Produk Tidak Bergerak", f"{len(nm):,}", f"dari {len(res):,} produk")
+                    with k2s:
+                        kpi_card("📦", f"Stok Tidak Bergerak ({u})", f"{nm[last_col].sum():,.0f}")
+                    with k3s:
+                        kpi_card("🚀", "Produk Sangat Cepat Keluar", f"{len(sc):,}")
+                    with k4s:
+                        kpi_card("📅", "Rentang Data", f"{n_days} hari", f"{first_col} → {last_col}")
 
-                st.write("")
-                with st.container(border=True):
-                    st.markdown("#### 🧊 Stok Tidak Bergerak")
-                    if non_moving.empty:
-                        st.success("Tidak ada stok yang diam — semua produk berubah antar file.")
-                    else:
-                        show_df(non_moving, height=380)
-                        download_button(non_moving, "Download Excel (Stok Tidak Bergerak)", "stok_tidak_bergerak.xlsx", "dl_stock_static")
+                    # ---------- A. Stok tidak bergerak (dimana / di bagian mana) ----------
+                    st.write("")
+                    with st.container(border=True):
+                        st.markdown("#### 🧊 Stok Tidak Bergerak")
+                        if nm.empty:
+                            st.success("Tidak ada stok yang diam — semua produk berubah antar file.")
+                        else:
+                            st.caption(f"{len(nm):,} produk dengan stok SAMA di semua file dan masih ada isinya "
+                                       f"(total {nm[last_col].sum():,.0f} {u}). Diurutkan dari stok terbanyak.")
+                            if has_loc:
+                                per_loc = nm.groupby("Lokasi").agg(Produk=("Kode", "count"), **{f"Total Stok ({u})": (last_col, "sum")}) \
+                                    .reset_index().sort_values(f"Total Stok ({u})", ascending=False)
+                                st.markdown("**Posisi stok yang tidak bergerak (per lokasi/gudang/bagian):**")
+                                lc1, lc2 = st.columns([1, 1.2])
+                                with lc1:
+                                    show_df(per_loc, height=260)
+                                with lc2:
+                                    figl = px.bar(per_loc, x=f"Total Stok ({u})", y="Lokasi", orientation="h",
+                                                  color_discrete_sequence=[STOCK_CLASS_COLOR["Tidak Bergerak"]])
+                                    figl.update_layout(height=max(240, 34 * len(per_loc) + 60), margin=dict(t=10, b=10, l=10, r=10),
+                                                       paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                                                       font=dict(color=CHART_FONT), yaxis=dict(autorange="reversed"))
+                                    show_chart(figl)
+                            nm_out = nm[base_cols + date_cols + ["Klasifikasi"]]
+                            show_df(nm_out, height=380)
+                            download_button(nm_out, "Download Excel (Stok Tidak Bergerak)", "stok_tidak_bergerak.xlsx", "dl_stock_static")
 
-                st.write("")
-                with st.container(border=True):
-                    st.markdown(f"#### 🚀 Top {top_n} Stok Paling Cepat Bergerak")
-                    if fast.empty:
-                        st.info("Tidak ada penurunan stok antar file.")
-                    else:
-                        show_df(fast, height=380)
-                        fast_chart = fast.copy()
-                        fast_chart["Produk"] = fast_chart["Nama Produk"].fillna(fast_chart["Kode"]).astype(str).str.slice(0, 32)
-                        figf = px.bar(fast_chart.iloc[::-1], x="Total Keluar (penurunan stok)", y="Produk", orientation="h",
-                                      color_discrete_sequence=[ACCENT])
-                        figf.update_layout(height=max(320, 22 * len(fast_chart) + 80), margin=dict(t=10, b=10, l=10, r=10),
-                                           paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                                           font=dict(color=CHART_FONT))
-                        show_chart(figf)
-                        download_button(fast, "Download Excel (Stok Cepat Bergerak)", "stok_cepat_bergerak.xlsx", "dl_stock_fast")
+                    # ---------- B. Top produk paling cepat keluar ----------
+                    st.write("")
+                    with st.container(border=True):
+                        st.markdown("#### 🚀 Top Produk Paling Cepat Keluar")
+                        b1, b2 = st.columns([1, 1])
+                        with b1:
+                            top_n = st.slider("Tampilkan berapa produk", 5, 50, 15, key="stock_topn")
+                        with b2:
+                            rank_by = st.selectbox("Urutkan berdasarkan", ["% stok keluar (tertinggi)", "Qty keluar (terbanyak)",
+                                                                            "Kecepatan keluar per hari"], key="stock_rank")
+                        moving = res[res["Keluar"] > 0]
+                        sort_cols = {"% stok keluar (tertinggi)": ["% Keluar", "Keluar"], "Qty keluar (terbanyak)": ["Keluar", "% Keluar"],
+                                     "Kecepatan keluar per hari": ["Keluar/Hari", "Keluar"]}[rank_by]
+                        fast = moving.sort_values(sort_cols, ascending=False).head(top_n).reset_index(drop=True)
+                        if fast.empty:
+                            st.info("Tidak ada penurunan stok antar file.")
+                        else:
+                            fast.insert(0, "Rank", range(1, len(fast) + 1))
+                            fast_out = fast[["Rank"] + base_cols + date_cols + ["Keluar", "% Keluar", "Keluar/Hari", "Klasifikasi"]]
+                            show_df(show_fmt(fast_out), height=420)
+                            fc = fast.copy()
+                            fc["Produk"] = fc["Nama Produk"].fillna(fc["Kode"]).astype(str).str.slice(0, 34)
+                            figf = px.bar(fc.iloc[::-1], x="Keluar", y="Produk", orientation="h", color="Klasifikasi",
+                                          color_discrete_map=STOCK_CLASS_COLOR, labels={"Keluar": f"Keluar ({u})"})
+                            figf.update_layout(height=max(320, 26 * len(fc) + 90), margin=dict(t=10, b=10, l=10, r=10),
+                                               paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                                               font=dict(color=CHART_FONT), legend=dict(orientation="h", y=1.05, x=0))
+                            show_chart(figf)
+                            download_button(fast_out, "Download Excel (Top Cepat Keluar)", "stok_cepat_keluar.xlsx", "dl_stock_fast")
+
+                    # ---------- C. Klasifikasi semua produk ----------
+                    st.write("")
+                    with st.container(border=True):
+                        st.markdown("#### 🏷️ Klasifikasi Produk")
+                        st.caption("Semua produk dikelompokkan menurut % stok yang keluar (batasnya bisa diubah di "
+                                   "'Pengaturan lanjutan'). 'Stok Bertambah' = hanya ada tambahan stok, belum ada yang keluar.")
+                        summ = res.groupby("Klasifikasi").agg(Produk=("Kode", "count"), **{f"Stok Terakhir ({u})": (last_col, "sum"),
+                                                                                             f"Total Keluar ({u})": ("Keluar", "sum")}) \
+                            .reindex(STOCK_CLASSES).dropna(subset=["Produk"]).reset_index()
+                        summ["Produk"] = summ["Produk"].astype(int)
+                        sc1, sc2 = st.columns([1.2, 1])
+                        with sc1:
+                            show_df(summ, height=300)
+                        with sc2:
+                            figc = px.bar(summ, x="Klasifikasi", y="Produk", color="Klasifikasi", color_discrete_map=STOCK_CLASS_COLOR,
+                                          text="Produk")
+                            figc.update_layout(height=300, margin=dict(t=10, b=10, l=10, r=10), showlegend=False,
+                                               paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color=CHART_FONT))
+                            show_chart(figc)
+                        sel_cls = st.multiselect("Tampilkan klasifikasi", STOCK_CLASSES,
+                                                  default=[c for c in STOCK_CLASSES if c != "Kosong"], key="stock_cls_filter")
+                        allc = res[res["Klasifikasi"].isin(sel_cls)].sort_values(["Klasifikasi", "% Keluar"], ascending=[True, False])
+                        order = {c: i for i, c in enumerate(STOCK_CLASSES)}
+                        allc = allc.assign(_o=allc["Klasifikasi"].map(order)).sort_values(["_o", "% Keluar"], ascending=[True, False]).drop(columns="_o")
+                        allc_out = allc[base_cols + date_cols + ["Keluar", "% Keluar", "Keluar/Hari", "Klasifikasi"]]
+                        show_df(show_fmt(allc_out), height=460)
+                        download_button(allc_out, "Download Excel (Klasifikasi Produk)", "klasifikasi_produk.xlsx", "dl_stock_class")
 
 # ---------------------------------------------------------------- Performance SS
 with tab_ss:
