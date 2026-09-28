@@ -204,3 +204,25 @@ butuh `KODEOUTLET`, `RAYON`, `SALESMAN`, `LASTUPDATE`.
   sehingga bisa digeser ke kanan; CSS overflow yang sebelumnya ikut mengganggu dihapus.
 - **Bug lama yang ikut diperbaiki**: kalau `secrets.toml` tidak ada sama sekali, gerbang
   password crash — sekarang otomatis dilewati (sesuai yang tertulis di README).
+
+## Update 3.1 (tabel seragam, Gap Harian hijau/merah, kartu Capaian Salesman, PDF di Stock)
+
+- **Gap Harian hijau/merah**: kartu Gap Harian di paling atas, kotak per divisi, kartu per salesman, dan kolom
+  "Gap Harian" di semua tabel — merah dengan tanda minus (`-Rp 5,265,712`) kalau belum tercapai, hijau
+  (`✓ Tercapai`) kalau sudah. Target belum ada → `-` netral.
+- **Perbaikan angka**: kartu Gap Harian atas dan Performance SS sebelumnya membandingkan capaian SEMUA salesman
+  dengan target yang hanya ada untuk sebagian (bisa salah tampil "Tercapai"). Sekarang capaian hanya dari salesman
+  yang punya target. Performance SS menampilkan catatan kalau ada salesman tanpa target.
+- **Tabel seragam**: semua tabel sekarang berupa tabel HTML — semua kolom & header rata tengah, header menempel saat
+  scroll, baris selang-seling, bisa digeser ke kanan/bawah. Konsekuensinya tabel tidak lagi bisa di-sort/cari lewat
+  klik header (fitur bawaan `st.dataframe`); pakai tombol Download Excel untuk olah data. Tabel dibatasi 1.500 baris
+  di layar (Download Excel selalu berisi data lengkap).
+- **Capaian by Divisi**: kotak Salesman dihapus; tiap divisi berisi Target | Capaian | % | Gap Harian dalam satu
+  baris (2 di atas: Coffee & Cereal, 2 di bawah: Instant Food & Homecare) plus bar progres tipis.
+- **Menu baru "Capaian Salesman"**: satu kartu ringkas per salesman (Target, Capaian, %, Gap Harian). Ikut filter
+  di Option + filter lokal, bisa diurutkan, opsi "Rincian per divisi", dan tombol **Download gambar (PNG)** untuk
+  dibagikan (maks. 80 salesman per gambar).
+- **Stock**: sekarang menerima **PDF** (berbasis teks, bukan hasil scan). PDF bergaris tabel dibaca otomatis (header
+  yang berulang tiap halaman dibuang); PDF laporan teks berkolom dibaca dengan memecah spasi lebar, kolom bernama
+  "Kolom 1..N" kalau header tidak terbaca rapi. Ada pratinjau 5 baris pertama untuk memastikan kolomnya benar.
+  Library baru: `pdfplumber` (sudah ditambahkan ke requirements.txt).

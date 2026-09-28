@@ -162,6 +162,8 @@ CHART_FONT = "#D9D9E3"
 # 1. STYLE — tema gelap ala dashboard referensi (panel membulat, aksen pink/lavender)
 # =====================================================================
 def inject_css():
+    _h_css = "".join(".tbl-h-%d { max-height:%dpx; }" % (h, h) for h in range(120, 1001, 20))
+    _pw_css = "".join(".pw-%d { width:%d%%; }" % (n, n) for n in range(0, 101))
     st.markdown(f"""
     <style>
     section[data-testid="stSidebar"] {{ background:#0B0B0F; border-right:1px solid #1d1d24; }}
@@ -216,6 +218,48 @@ def inject_css():
     .dv-gap-ok {{ border:2px solid #22c55e; }}
     .dv-gap-ok .dv-value {{ color:#86efac; }}
 
+    /* Tabel seragam: semua kolom rata tengah, header sticky, bisa scroll ke kanan & bawah */
+    .tbl-wrap {{ overflow:auto; border:1px solid #23232b; border-radius:14px; background:#111116; margin-bottom:6px; }}
+    table.tbl {{ border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-size:0.84rem; }}
+    table.tbl th, table.tbl td {{ text-align:center; padding:8px 16px; white-space:nowrap; border-bottom:1px solid #1c1c23; }}
+    table.tbl thead th {{ position:sticky; top:0; z-index:2; background:#1b1b24; color:#C9C9D6; font-weight:600;
+                          font-size:0.78rem; letter-spacing:0.3px; border-bottom:1px solid #2c2c37; }}
+    table.tbl tbody tr:nth-child(even) {{ background:#14141a; }}
+    table.tbl tbody tr:hover {{ background:#1d1d27; }}
+    table.tbl tr.row-alert td {{ background:#3b1414; color:#fca5a5; }}
+    table.tbl td.c-bad {{ color:#f87171; font-weight:700; }}
+    table.tbl td.c-ok {{ color:#4ade80; font-weight:700; }}
+    {_h_css}
+    {_pw_css}
+
+    /* Panel Capaian by Divisi & kartu Capaian Salesman */
+    .dv-panel {{ border:1px solid #23232b; border-radius:14px; background:#111116; padding:10px 12px; margin-bottom:10px; }}
+    .dv-title {{ font-weight:700; font-size:0.95rem; margin-bottom:8px; color:#F0F0F7; }}
+    .dv-grid {{ display:grid; grid-template-columns:1.4fr 1.4fr 0.75fr 1.5fr; gap:8px; }}
+    .dv-panel, .sc-card {{ container-type:inline-size; }}
+    .dv-grid .dv-box {{ padding:7px 8px; min-height:auto; }}
+    .dv-grid .dv-value {{ white-space:nowrap; font-size:0.78rem; font-size:clamp(0.6rem, 2.5cqw, 0.88rem); }}
+    .dv-bar {{ height:4px; border-radius:4px; background:#23232b; margin-top:9px; overflow:hidden; }}
+    .dv-bar span {{ display:block; height:100%; background:{ACCENT}; border-radius:4px; }}
+    .dv-bar.ok span {{ background:#22c55e; }}
+    .sc-wrap {{ max-height:640px; overflow:auto; padding-right:2px; }}
+    .sc-grid {{ display:grid; grid-template-columns:repeat(auto-fill, minmax(460px, 1fr)); gap:10px; }}
+    .sc-card {{ border:1px solid #23232b; border-radius:14px; background:#111116; padding:9px 11px; }}
+    .sc-head {{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:7px; }}
+    .sc-name {{ font-weight:700; font-size:0.88rem; color:#F0F0F7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+    .sc-tag {{ font-size:0.62rem; color:#B9B6F5; border:1px solid #3a3a55; border-radius:999px; padding:1px 8px; white-space:nowrap; }}
+    .sc-card .dv-box {{ min-height:auto; padding:5px 8px; }}
+    .sc-div {{ display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-top:7px; }}
+    .sc-chip {{ font-size:0.66rem; color:#b5b5c4; border:1px solid #23232b; border-radius:8px; padding:3px 6px; text-align:center; white-space:nowrap; }}
+    .sc-chip.bad {{ border-color:#7f1d1d; color:#fca5a5; }}
+    .sc-chip.ok {{ border-color:#14532d; color:#86efac; }}
+
+    /* Kartu KPI Gap Harian: hijau kalau tercapai, merah kalau belum */
+    .kpi-box.kpi-bad {{ border:2px solid #ef4444; }}
+    .kpi-box.kpi-bad .kpi-value {{ color:#fca5a5; }}
+    .kpi-box.kpi-ok {{ border:2px solid #22c55e; }}
+    .kpi-box.kpi-ok .kpi-value {{ color:#86efac; }}
+
     /* Mobile-friendly — layar sempit (HP) */
     @media (max-width: 640px) {{
         .app-title {{ font-size:1.7rem; letter-spacing:1px;
@@ -228,14 +272,20 @@ def inject_css():
         .big-nominal {{ font-size:1.6rem; }}
         .block-container {{ padding-left:0.6rem; padding-right:0.6rem; padding-top:1rem; }}
         button[data-baseweb="tab"] {{ padding:6px 10px !important; font-size:0.8rem !important; }}
+        table.tbl {{ font-size:0.74rem; }}
+        table.tbl th, table.tbl td {{ padding:6px 10px; }}
+        .dv-grid {{ grid-template-columns:1fr 1fr; }}
+        .dv-grid .dv-value {{ font-size:0.82rem; }}
+        .sc-grid {{ grid-template-columns:1fr; }}
     }}
     </style>
     """, unsafe_allow_html=True)
 
 
-def kpi_card(icon: str, label: str, value: str, sub: str = "", cmp_html: str = ""):
+def kpi_card(icon: str, label: str, value: str, sub: str = "", cmp_html: str = "", state: str = ""):
+    """state: '' (netral) | 'ok' (hijau) | 'bad' (merah)."""
     st.markdown(f"""
-    <div class="kpi-box">
+    <div class="kpi-box {('kpi-' + state) if state else ''}">
         <div class="kpi-icon">{icon}</div>
         <div class="kpi-label">{label}</div>
         <div class="kpi-value">{value}</div>
@@ -255,19 +305,55 @@ def dv_box(label: str, value: str, sub: str = "", css_class: str = ""):
     """, unsafe_allow_html=True)
 
 
-def show_df(df, **kw):
-    """Pembungkus st.dataframe. Tabel LEBAR (>= 8 kolom) tidak dipaksa muat ke lebar
-    kontainer (use_container_width=False), supaya kolomnya tetap punya lebar wajar dan
-    tabel bisa di-scroll ke kanan — kalau dipaksa muat, kolom malah kepotong/menyempit."""
-    base = getattr(df, "data", df)  # Styler -> DataFrame
-    n_cols = base.shape[1] if hasattr(base, "shape") else 0
-    kw.setdefault("hide_index", True)
-    kw.pop("use_container_width", None)
-    stretch = n_cols < 8
+MAX_ROWS_HTML = 1500
+
+
+def _fmt_cell(v) -> str:
+    import html as _html
+    from datetime import date as _d, datetime as _dt
+    if isinstance(v, (bool, np.bool_)):
+        return "✓" if v else "✗"
     try:
-        st.dataframe(df, width="stretch" if stretch else "content", **kw)
-    except Exception:  # Streamlit versi lama belum punya width="stretch"/"content"
-        st.dataframe(df, use_container_width=stretch, **kw)
+        if v is None or pd.isna(v):
+            return "-"
+    except (TypeError, ValueError):
+        pass
+    if isinstance(v, (int, np.integer)):
+        return f"{int(v):,}"
+    if isinstance(v, (float, np.floating)):
+        return f"{int(v):,}" if float(v).is_integer() else f"{v:,.1f}"
+    if isinstance(v, (pd.Timestamp, _dt, _d)):
+        return v.strftime("%d %b %Y")
+    return _html.escape(str(v))
+
+
+def show_df(df, height=None, highlight_mask=None, **_ignored):
+    """Tabel HTML seragam: semua kolom (dan header) rata tengah, header menempel saat scroll,
+    zebra, dan bisa di-scroll ke kanan/bawah. Kolom bernama '...Gap...' otomatis berwarna:
+    merah untuk '-Rp ...' (belum tercapai), hijau untuk '✓ Tercapai'.
+    highlight_mask: Series boolean (urut sama dengan df) untuk menandai baris merah."""
+    base = getattr(df, "data", df)
+    total = len(base)
+    shown = base.iloc[:MAX_ROWS_HTML]
+    cols = [str(c) for c in shown.columns]
+    import html as _html
+    head = "".join(f"<th>{_html.escape(c)}</th>" for c in cols)
+    hl = list(highlight_mask.iloc[:len(shown)]) if highlight_mask is not None else [False] * len(shown)
+    body = []
+    for i, tup in enumerate(shown.itertuples(index=False, name=None)):
+        tds = []
+        for c, v in zip(cols, tup):
+            txt = _fmt_cell(v)
+            cls = ""
+            if "Gap" in c:
+                cls = "c-bad" if txt.startswith("-Rp") else ("c-ok" if txt.startswith("✓") else "")
+            tds.append(f'<td class="{cls}">{txt}</td>' if cls else f"<td>{txt}</td>")
+        body.append(f'<tr class="row-alert">{"".join(tds)}</tr>' if hl[i] else f'<tr>{"".join(tds)}</tr>')
+    h_cls = f" tbl-h-{max(120, min(1000, int(round(height / 20.0)) * 20))}" if height else ""
+    st.markdown(f'<div class="tbl-wrap{h_cls}"><table class="tbl"><thead><tr>{head}</tr></thead>'
+                f'<tbody>{"".join(body)}</tbody></table></div>', unsafe_allow_html=True)
+    if total > MAX_ROWS_HTML:
+        st.caption(f"Menampilkan {MAX_ROWS_HTML:,} dari {total:,} baris — pakai tombol Download Excel untuk data lengkap.")
 
 
 def show_chart(fig):
@@ -285,6 +371,14 @@ def fmt_rp(n) -> str:
         return "Rp {:,.0f}".format(float(n))
     except (ValueError, TypeError):
         return "-"
+
+
+def fmt_gap(g) -> str:
+    """Gap Harian = (Target - Capaian) / HKE. >0 = masih kurang ('-Rp ...', merah);
+    <=0 = sudah tercapai ('✓ Tercapai', hijau); kosong = target belum ada ('-')."""
+    if g is None or pd.isna(g):
+        return "-"
+    return "-" + fmt_rp(g) if g > 0 else "✓ Tercapai"
 
 
 def fmt_pct(n, decimals=1) -> str:
@@ -612,7 +706,7 @@ def format_cols(df: pd.DataFrame, rp_cols=(), pct_cols=()) -> pd.DataFrame:
     out = df.copy()
     for c in rp_cols:
         if c in out.columns:
-            out[c] = out[c].apply(fmt_rp)
+            out[c] = out[c].apply(fmt_gap if "Gap Harian" in str(c) else fmt_rp)
     for c in pct_cols:
         if c in out.columns:
             out[c] = out[c].apply(fmt_pct)
@@ -910,7 +1004,13 @@ if not target_all.empty:
         tgt_df = tgt_df[tgt_df[TARGET_ALL_COL["periode"]].isna() | tgt_df[TARGET_ALL_COL["periode"]].isin(periode_sel)]
     target_total = tgt_df[TARGET_ALL_COL["target"]].sum()
 
-gap_harian_total = ((target_total - pencapaian) / hke) if hke else 0
+# Gap Harian harus membandingkan yang sebanding: capaian HANYA dari salesman yang punya target
+# (kalau semua salesman dijumlah tapi target cuma ada untuk sebagian, kartu bisa salah "Tercapai").
+kode_bertarget = tgt_df[TARGET_ALL_COL["kode_sales"]].unique().tolist() if not target_all.empty else []
+pencapaian_bt = (hitung_pencapaian(df_filtered[df_filtered[COL["kode_sales"]].isin(kode_bertarget)])[0]
+                 if kode_bertarget else 0)
+n_bertarget = len(kode_bertarget)
+gap_harian_total = ((target_total - pencapaian_bt) / hke) if hke else 0
 oa_pct = (oa_total / cb_standpro_area * 100) if cb_standpro_area else 0
 
 pencapaian_prev = oa_prev = None
@@ -926,7 +1026,13 @@ with k2:
               f"Bruto F {fmt_rp(bruto_f)} &middot; Retur {pct_retur:.2f}% ({fmt_rp(bruto_r)})",
               compare_badge(pencapaian, pencapaian_prev) if bandingkan else "")
 with k3:
-    kpi_card("📉", "Gap Harian", fmt_rp(gap_harian_total), f"HKE yang dipakai: {hke}")
+    if not target_total:
+        kpi_card("📉", "Gap Harian", "-", "target belum ada")
+    elif pencapaian_bt >= target_total:
+        kpi_card("📉", "Gap Harian", "✓ Tercapai", f"lebih {fmt_rp(pencapaian_bt - target_total)} &middot; {n_bertarget} salesman ber-target", state="ok")
+    else:
+        kpi_card("📉", "Gap Harian", "-" + fmt_rp(gap_harian_total),
+                 f"kurang {fmt_rp(target_total - pencapaian_bt)} &middot; HKE {hke} &middot; {n_bertarget} salesman ber-target", state="bad")
 with k4:
     kpi_card("🏪", "OA (Outlet Aktif)", f"{oa_total} outlet",
               f"{oa_pct:.1f}% dari CB Standpro Area ({cb_standpro_area})",
@@ -937,10 +1043,62 @@ st.divider()
 # =====================================================================
 # 6. TABS
 # =====================================================================
+def stock_read_pdf(file_bytes: bytes, header_row: int = 0) -> pd.DataFrame:
+    """Baca tabel dari PDF berbasis teks (bukan hasil scan/gambar). Coba deteksi tabel dulu; kalau tidak
+    ada garis tabel, pecah tiap baris teks pada spasi lebar (2+ spasi) seperti laporan ERP."""
+    from io import BytesIO
+    try:
+        import pdfplumber
+    except ImportError as e:
+        raise RuntimeError("Library 'pdfplumber' belum terpasang (tambahkan ke requirements.txt).") from e
+    rows, from_text = [], False
+    with pdfplumber.open(BytesIO(file_bytes)) as pdf:
+        for page in pdf.pages:
+            for tbl in page.extract_tables():
+                for r in tbl:
+                    if r and any(c not in (None, "") for c in r):
+                        rows.append([("" if c is None else str(c).replace("\n", " ").strip()) for c in r])
+        if not rows:
+            from_text = True
+            for page in pdf.pages:
+                for line in (page.extract_text(layout=True) or "").splitlines():
+                    parts = [p.strip() for p in re.split(r"\s{2,}|\t", line.strip()) if p.strip()]
+                    if len(parts) >= 2:
+                        rows.append(parts)
+    if not rows:
+        raise ValueError("Tidak ada tabel/teks tabular yang terbaca (PDF hasil scan/gambar tidak didukung).")
+    if from_text:
+        # Laporan teks tanpa garis tabel: ambil hanya baris dengan jumlah kolom yang paling umum
+        # (membuang judul/total/nomor halaman). Kalau header ikut terbuang karena jumlah kolomnya
+        # beda, pakai nama kolom generik "Kolom 1..N" — pilih kolomnya lewat dropdown di bawah.
+        from collections import Counter
+        mode_n = Counter(len(r) for r in rows).most_common(1)[0][0]
+        first_ok = len(rows[0]) == mode_n
+        rows = [r for r in rows if len(r) == mode_n]
+        if not first_ok:
+            return pd.DataFrame(rows, columns=[f"Kolom {i + 1}" for i in range(mode_n)])
+    width = max(len(r) for r in rows)
+    rows = [r + [""] * (width - len(r)) for r in rows]
+    header_row = min(header_row, len(rows) - 1)
+    header = rows[header_row]
+    body = [r for r in rows[header_row + 1:] if r != header]   # buang header yang berulang di tiap halaman
+    cols = []
+    for i, h in enumerate(header):
+        h = h or f"Kolom {i + 1}"
+        while h in cols:
+            h += "_"
+        cols.append(h)
+    return pd.DataFrame(body, columns=cols)
+
+
+@st.cache_data(show_spinner="Membaca file stok...")
 def stock_read_file(file_bytes: bytes, file_name: str, header_row: int = 0) -> pd.DataFrame:
     from io import BytesIO
+    name = file_name.lower()
+    if name.endswith(".pdf"):
+        return stock_read_pdf(file_bytes, header_row)
     buf = BytesIO(file_bytes)
-    if file_name.lower().endswith((".xlsx", ".xls")):
+    if name.endswith((".xlsx", ".xls")):
         return pd.read_excel(buf, header=header_row, dtype=str)
     return pd.read_csv(buf, sep=None, engine="python", header=header_row, dtype=str, index_col=False)
 
@@ -1070,13 +1228,168 @@ def trend_figure(cur: pd.DataFrame, prev: pd.DataFrame | None, gran: str, metric
     return fig
 
 
+def hitung_divisi_long(df_scope: pd.DataFrame) -> pd.DataFrame:
+    """Capaian per Salesman x Divisi (5/6/8/16): Target (sheet Target Divisi), Net Sales, % Capaian, Gap Harian."""
+    cols = ["Salesman", "Divisi", "Target", "Net Sales", "% Capaian", "Gap Harian"]
+    if df_scope.empty:
+        return pd.DataFrame(columns=cols)
+    d = net_by_group(df_scope, [COL["kode_sales"], COL["salesman"], "_divisi_norm"], "Net Sales")
+    d = d[d["_divisi_norm"].isin(DIVISI_LABEL.keys())].copy()
+    d["Divisi"] = d["_divisi_norm"].map(DIVISI_LABEL)
+    if not target_divisi.empty:
+        t = target_divisi.copy()
+        if periode_sel:
+            t = t[t[TARGET_DIVISI_COL["periode"]].isna() | t[TARGET_DIVISI_COL["periode"]].isin(periode_sel)]
+        t = t.groupby([TARGET_DIVISI_COL["kode_sales"], "_divisi_norm"])[TARGET_DIVISI_COL["target"]].sum().reset_index()
+        d = d.merge(t, left_on=[COL["kode_sales"], "_divisi_norm"],
+                    right_on=[TARGET_DIVISI_COL["kode_sales"], "_divisi_norm"], how="left")
+        d = d.rename(columns={TARGET_DIVISI_COL["target"]: "Target"})
+    else:
+        d["Target"] = np.nan
+    d["% Capaian"] = (d["Net Sales"] / d["Target"] * 100).round(1)
+    d["Gap Harian"] = ((d["Target"] - d["Net Sales"]) / hke).round(0) if hke else np.nan
+    return d.rename(columns={COL["salesman"]: "Salesman"})[cols]
+
+
+def gap_state(tgt, cap):
+    """(kelas css kotak, teks utama, teks kecil) untuk kotak Gap Harian: merah kalau belum, hijau kalau tercapai."""
+    if pd.isna(tgt) or not tgt:
+        return "", "-", "target belum ada"
+    if cap >= tgt:
+        return "dv-gap-ok", "✓ Tercapai", f"lebih {fmt_rp(cap - tgt)}"
+    gap_h = (tgt - cap) / hke if hke else np.nan
+    return "dv-gap-bad", ("-" if pd.isna(gap_h) else "-" + fmt_rp(gap_h)), f"kurang {fmt_rp(tgt - cap)}"
+
+
+def box_html(label: str, value: str, sub: str = "", css: str = "") -> str:
+    return (f'<div class="dv-box {css}"><div class="dv-label">{label}</div>'
+            f'<div class="dv-value">{value}</div>' + (f'<div class="dv-sub">{sub}</div>' if sub else "") + "</div>")
+
+
+def bar_html(pct) -> str:
+    w = 0 if pd.isna(pct) else int(max(0, min(100, round(pct))))
+    ok = " ok" if (pd.notna(pct) and pct >= 100) else ""
+    return f'<div class="dv-bar{ok}"><span class="pw-{w}"></span></div>'
+
+
+def divisi_panel_html(icon: str, label: str, tgt, cap) -> str:
+    pct = (cap / tgt * 100) if pd.notna(tgt) and tgt else np.nan
+    css, gtxt, gsub = gap_state(tgt, cap)
+    return ('<div class="dv-panel">'
+            f'<div class="dv-title">{icon} {label}</div><div class="dv-grid">'
+            + box_html("Target", fmt_rp(tgt)) + box_html("Capaian", fmt_rp(cap))
+            + box_html("%", fmt_pct(pct)) + box_html("Gap Harian", gtxt, "", css)
+            + "</div>" + bar_html(pct) + "</div>")
+
+
+DIV_ICON = {"Coffee": "☕", "Cereal": "🥣", "Instant Food": "🍜", "Homecare": "🧴"}
+
+
+def _pil_font(size: int, bold: bool = False):
+    from PIL import ImageFont
+    names = (["DejaVuSans-Bold.ttf", "arialbd.ttf", "LiberationSans-Bold.ttf"] if bold
+             else ["DejaVuSans.ttf", "arial.ttf", "LiberationSans-Regular.ttf"])
+    for n in names:
+        try:
+            return ImageFont.truetype(n, size)
+        except OSError:
+            continue
+    try:
+        return ImageFont.load_default(size=size)   # Pillow >= 10.1 (font bawaan bisa diskalakan)
+    except TypeError:
+        return ImageFont.load_default()
+
+
+def salesman_card_html(name: str, team: str, tgt, cap, chips: list | None = None) -> str:
+    import html as _html
+    pct = (cap / tgt * 100) if pd.notna(tgt) and tgt else np.nan
+    css, gtxt, gsub = gap_state(tgt, cap)
+    tag = f'<span class="sc-tag">{_html.escape(team)}</span>' if team and team != "Lainnya" else ""
+    chip_html = ""
+    if chips:
+        chip_html = '<div class="sc-div">' + "".join(
+            f'<div class="sc-chip {c_state}">{icon} {txt}</div>' for icon, txt, c_state in chips) + "</div>"
+    return ('<div class="sc-card">'
+            f'<div class="sc-head"><span class="sc-name">{_html.escape(name)}</span>{tag}</div>'
+            '<div class="dv-grid">'
+            + box_html("Target", fmt_rp(tgt)) + box_html("Capaian", fmt_rp(cap))
+            + box_html("%", fmt_pct(pct)) + box_html("Gap Harian", gtxt, "", css)
+            + "</div>" + bar_html(pct) + chip_html + "</div>")
+
+
+def render_capaian_png(rows: list, title: str, subtitle: str) -> bytes:
+    """Gambar PNG ringkas semua kartu salesman — untuk dibagikan lewat WhatsApp dsb.
+    rows: dict(name, team, tgt, cap, chips=[(label, pct_txt, state)])."""
+    from io import BytesIO
+    from PIL import Image, ImageDraw
+    W, PAD, GAP = 1120, 24, 12
+    f_title, f_sub, f_name = _pil_font(30, True), _pil_font(15), _pil_font(19, True)
+    f_lab, f_val, f_small = _pil_font(12), _pil_font(17, True), _pil_font(11)
+    has_chips = any(r.get("chips") for r in rows)
+    card_h = 118 + (30 if has_chips else 0)
+    H = PAD + 78 + len(rows) * (card_h + GAP) + 44
+    img = Image.new("RGB", (W, max(H, 200)), "#0B0B0F")
+    d = ImageDraw.Draw(img)
+    d.text((PAD, PAD), title, font=f_title, fill="#F3A6E9")
+    d.text((PAD, PAD + 42), subtitle, font=f_sub, fill="#9A9AA8")
+    y = PAD + 78
+    inner_w = W - 2 * PAD - 24
+    weights = [1.4, 1.4, 0.75, 1.5]
+    unit = (inner_w - 3 * 8) / sum(weights)
+    for r in rows:
+        tgt, cap = r["tgt"], r["cap"]
+        pct = (cap / tgt * 100) if pd.notna(tgt) and tgt else np.nan
+        css, gtxt, gsub = gap_state(tgt, cap)
+        gtxt = gtxt.replace("✓ ", "")
+        d.rounded_rectangle([PAD, y, W - PAD, y + card_h], radius=14, fill="#111116", outline="#23232b", width=1)
+        d.text((PAD + 12, y + 9), r["name"], font=f_name, fill="#F0F0F7")
+        if r.get("team") and r["team"] != "Lainnya":
+            tw = d.textlength(r["team"], font=f_small)
+            d.rounded_rectangle([W - PAD - 12 - tw - 16, y + 10, W - PAD - 12, y + 30], radius=10, outline="#3a3a55", width=1)
+            d.text((W - PAD - 12 - tw - 8, y + 14), r["team"], font=f_small, fill="#B9B6F5")
+        bx = PAD + 12
+        by = y + 40
+        items = [("TARGET", fmt_rp(tgt), "#F3F4F6", "#2a2a33", 1), ("CAPAIAN", fmt_rp(cap), "#F3F4F6", "#2a2a33", 1),
+                 ("%", fmt_pct(pct), "#F3F4F6", "#2a2a33", 1),
+                 ("GAP HARIAN", gtxt, "#86EFAC" if css == "dv-gap-ok" else ("#FCA5A5" if css == "dv-gap-bad" else "#F3F4F6"),
+                  "#22c55e" if css == "dv-gap-ok" else ("#ef4444" if css == "dv-gap-bad" else "#2a2a33"),
+                  2 if css else 1)]
+        for wgt, (lab, val, vcol, ocol, ow) in zip(weights, items):
+            bw = unit * wgt
+            d.rounded_rectangle([bx, by, bx + bw, by + 56], radius=10, fill="#14141a", outline=ocol, width=ow)
+            d.text((bx + 9, by + 7), lab, font=f_lab, fill="#8b8b98")
+            d.text((bx + 9, by + 27), val, font=f_val, fill=vcol)
+            bx += bw + 8
+        bar_y = by + 56 + 9
+        d.rounded_rectangle([PAD + 12, bar_y, W - PAD - 12, bar_y + 4], radius=2, fill="#23232b")
+        if pd.notna(pct):
+            fill_w = (W - 2 * PAD - 24) * max(0, min(100, pct)) / 100
+            if fill_w > 2:
+                d.rounded_rectangle([PAD + 12, bar_y, PAD + 12 + fill_w, bar_y + 4], radius=2,
+                                    fill="#22c55e" if pct >= 100 else "#F3A6E9")
+        if r.get("chips"):
+            cx = PAD + 12
+            cw = (inner_w - 3 * 6) / 4
+            for lab, ptxt, state in r["chips"]:
+                col = "#86EFAC" if state == "ok" else ("#FCA5A5" if state == "bad" else "#b5b5c4")
+                d.rounded_rectangle([cx, bar_y + 12, cx + cw, bar_y + 32], radius=8, outline="#23232b", width=1)
+                d.text((cx + 8, bar_y + 16), f"{lab} {ptxt}", font=f_small, fill=col)
+                cx += cw + 6
+        y += card_h + GAP
+    foot = "© Created by Adelard"
+    d.text(((W - d.textlength(foot, font=f_sub)) / 2, y + 6), foot, font=f_sub, fill="#8b8b98")
+    buf = BytesIO()
+    img.save(buf, format="PNG", optimize=True)
+    return buf.getvalue()
+
+
 ringkasan_sales = ringkasan_by_salesman(df_filtered, target_all, periode_sel, hke)
 mhs_resume_all = hitung_mhs_resume(df_filtered)
 mhs_by_sales_all = hitung_mhs_by_salesman(mhs_resume_all, df_filtered, outlet_count_dmp)
 
-(tab_overview, tab_sales, tab_wilayah, tab_subbrand, tab_mhs, tab_insentif, tab_lato,
+(tab_overview, tab_sales, tab_salcard, tab_wilayah, tab_subbrand, tab_mhs, tab_insentif, tab_lato,
  tab_ltdnpl, tab_paretto, tab_stock, tab_ss, tab_readme) = st.tabs(
-    ["📊 Overview", "🧑‍💼 By Salesman", "🗺️ By Wilayah", "🏷️ By Subbrand & Divisi",
+    ["📊 Overview", "🧑‍💼 By Salesman", "📇 Capaian Salesman", "🗺️ By Wilayah", "🏷️ By Subbrand & Divisi",
      "📦 MHS", "🎯 Insentif", "📋 LATO", "🆕 LTD NPL", "📐 Paretto", "🗃️ Stock",
      "📈 Performance SS", "📖 Read Me"]
 )
@@ -1179,76 +1492,22 @@ with tab_sales:
         st.caption("Divisi 5-Coffee, 6-Cereal, 8-Instant Food, 16-Homecare. Target diambil dari sheet "
                    "'Target Divisi' pada file Target.")
         df_div_scope = df_filtered[df_filtered[COL["salesman"]].isin(salesman_filter_sales)] if salesman_filter_sales else df_filtered.iloc[0:0]
-        net_by_sales_div = net_by_group(df_div_scope, [COL["kode_sales"], COL["salesman"], "_divisi_norm"], "Net Sales")
-        net_by_sales_div = net_by_sales_div[net_by_sales_div["_divisi_norm"].isin(DIVISI_LABEL.keys())]
-        net_by_sales_div["Divisi"] = net_by_sales_div["_divisi_norm"].map(DIVISI_LABEL)
+        tbl_div_long = hitung_divisi_long(df_div_scope)
 
-        if not target_divisi.empty:
-            tgt_div = target_divisi.copy()
-            if periode_sel:
-                tgt_div = tgt_div[tgt_div[TARGET_DIVISI_COL["periode"]].isna() | tgt_div[TARGET_DIVISI_COL["periode"]].isin(periode_sel)]
-            tgt_div = tgt_div.groupby([TARGET_DIVISI_COL["kode_sales"], "_divisi_norm"])[TARGET_DIVISI_COL["target"]].sum().reset_index()
-            net_by_sales_div = net_by_sales_div.merge(
-                tgt_div, left_on=[COL["kode_sales"], "_divisi_norm"],
-                right_on=[TARGET_DIVISI_COL["kode_sales"], "_divisi_norm"], how="left")
-            net_by_sales_div = net_by_sales_div.rename(columns={TARGET_DIVISI_COL["target"]: "Target"})
-        else:
-            net_by_sales_div["Target"] = np.nan
+        # Kotak ringkasan per Divisi (gabungan salesman yang difilter): 2 di atas, 2 di bawah.
+        # Capaian hanya dari salesman yang PUNYA target di divisi tsb, supaya % tidak menyesatkan.
+        def _agg_divisi(lbl: str):
+            sub_t = tbl_div_long[(tbl_div_long["Divisi"] == lbl) & tbl_div_long["Target"].notna()]
+            if sub_t.empty:
+                return np.nan, 0
+            return sub_t["Target"].sum(), sub_t["Net Sales"].sum()
 
-        net_by_sales_div["% Capaian"] = (net_by_sales_div["Net Sales"] / net_by_sales_div["Target"] * 100).round(1)
-        net_by_sales_div["Gap Harian"] = ((net_by_sales_div["Target"] - net_by_sales_div["Net Sales"]) / hke).round(0) if hke else np.nan
-        tbl_div_long = net_by_sales_div.rename(columns={COL["salesman"]: "Salesman"})[
-            ["Salesman", "Divisi", "Target", "Net Sales", "% Capaian", "Gap Harian"]
-        ]
-
-        # --- Kotak ringkasan per Divisi: 2 kategori di atas (Coffee, Cereal) & 2 di bawah
-        #     (Instant Food, Homecare). Nilainya gabungan dari salesman yang sedang difilter;
-        #     kalau hanya 1 salesman dipilih, kotak Salesman menampilkan namanya.
-        n_sales_div = len(salesman_filter_sales)
-        sales_label = salesman_filter_sales[0] if n_sales_div == 1 else f"{n_sales_div} Salesman"
-        div_icon = {"Coffee": "☕", "Cereal": "🥣", "Instant Food": "🍜", "Homecare": "🧴"}
-
-        def render_divisi_panel(lbl: str):
-            sub = tbl_div_long[tbl_div_long["Divisi"] == lbl]
-            # Capaian hanya dari salesman yang PUNYA target di divisi ini — kalau semua penjualan
-            # ikut dijumlah sementara target cuma ada untuk sebagian salesman, % capaian menyesatkan.
-            sub_t = sub[sub["Target"].notna()]
-            tgt = sub_t["Target"].sum() if not sub_t.empty else np.nan
-            cap = sub_t["Net Sales"].sum() if not sub_t.empty else 0
-            pct = (cap / tgt * 100) if pd.notna(tgt) and tgt else np.nan
-            with st.container(border=True):
-                st.markdown(f"**{div_icon[lbl]} {lbl}**")
-                c1, c2, c3, c4, c5 = st.columns([2.2, 1.7, 1.7, 0.9, 1.8])
-                with c1:
-                    n_ber_target = sub_t["Salesman"].nunique()
-                    dv_box("Salesman", sales_label,
-                           f"{n_ber_target} salesman ber-target" if n_sales_div > 1 else "")
-                with c2:
-                    dv_box("Target", fmt_rp(tgt))
-                with c3:
-                    dv_box("Capaian", fmt_rp(cap))
-                with c4:
-                    dv_box("%", fmt_pct(pct))
-                with c5:
-                    if pd.isna(tgt) or not tgt:
-                        dv_box("Gap Harian", "-", "target belum ada")
-                    elif cap >= tgt:
-                        dv_box("Gap Harian", "✓ Tercapai", f"lebih {fmt_rp(cap - tgt)}", "dv-gap-ok")
-                    else:
-                        gap_h = (tgt - cap) / hke if hke else np.nan
-                        gap_txt = "-" if pd.isna(gap_h) else "-" + fmt_rp(gap_h)
-                        dv_box("Gap Harian", gap_txt, f"kurang {fmt_rp(tgt - cap)}", "dv-gap-bad")
-
-        row1 = st.columns(2)
-        with row1[0]:
-            render_divisi_panel("Coffee")
-        with row1[1]:
-            render_divisi_panel("Cereal")
-        row2 = st.columns(2)
-        with row2[0]:
-            render_divisi_panel("Instant Food")
-        with row2[1]:
-            render_divisi_panel("Homecare")
+        for pair in (("Coffee", "Cereal"), ("Instant Food", "Homecare")):
+            cols_pair = st.columns(2)
+            for col_, lbl in zip(cols_pair, pair):
+                with col_:
+                    tgt_, cap_ = _agg_divisi(lbl)
+                    st.markdown(divisi_panel_html(DIV_ICON[lbl], lbl, tgt_, cap_), unsafe_allow_html=True)
 
         st.markdown("**Rincian per salesman**")
 
@@ -1269,6 +1528,66 @@ with tab_sales:
         show_df(format_cols(tbl_div_wide, rp_cols=rp_cols_wide, pct_cols=pct_cols_wide),
                      hide_index=True, use_container_width=True, height=280)
         download_button(tbl_div_long, "Download Excel (Capaian by Divisi)", "by_salesman_divisi.xlsx", "dl_sales_div")
+
+# ---------------------------------------------------------------- Capaian Salesman (kartu ringkas)
+with tab_salcard:
+    with st.container(border=True):
+        st.markdown("#### 📇 Capaian Salesman — kartu ringkas untuk dibagikan")
+        st.caption("Satu kartu per salesman: Target, Capaian, %, dan Gap Harian (merah = belum tercapai, hijau = "
+                   "tercapai). Ikut filter Periode/Week di sidebar. Tombol PNG di bawah membuat gambar siap kirim.")
+        fc1, fc2, fc3 = st.columns([3, 1.6, 1.4])
+        with fc1:
+            sel_card = st.multiselect("Filter salesman", salesman_terpilih, default=salesman_terpilih,
+                                       key=fkey("salcard_filter"))
+        with fc2:
+            sort_card = st.selectbox("Urutkan", ["Nama A–Z", "% Capaian tertinggi", "% Capaian terendah", "Net Sales tertinggi"],
+                                      key="salcard_sort")
+        with fc3:
+            show_div_card = st.checkbox("Rincian per divisi", value=False, key="salcard_div")
+
+    data_card = ringkasan_sales[ringkasan_sales["Salesman"].isin(sel_card)].copy()
+    if sort_card == "Nama A–Z":
+        data_card = data_card.sort_values("Salesman")
+    elif sort_card == "% Capaian tertinggi":
+        data_card = data_card.sort_values("% Capaian", ascending=False, na_position="last")
+    elif sort_card == "% Capaian terendah":
+        data_card = data_card.sort_values("% Capaian", ascending=True, na_position="last")
+    else:
+        data_card = data_card.sort_values("Net Sales", ascending=False)
+
+    div_by_sales = {}
+    if show_div_card and not data_card.empty:
+        dl = hitung_divisi_long(df_filtered[df_filtered[COL["salesman"]].isin(sel_card)])
+        for (sm, lbl), g in dl.groupby(["Salesman", "Divisi"]):
+            p = g["% Capaian"].iloc[0]
+            state = "" if pd.isna(p) else ("ok" if p >= 100 else "bad")
+            div_by_sales.setdefault(sm, {})[lbl] = (DIV_ICON[lbl], lbl, fmt_pct(p), state)
+
+    rows_png, cards_html = [], []
+    for _, r in data_card.iterrows():
+        chips = None
+        if show_div_card:
+            got = div_by_sales.get(r["Salesman"], {})
+            chips = [got.get(lbl, (DIV_ICON[lbl], lbl, "-", "")) for lbl in DIVISI_LABEL.values()]
+            chips_html = [(ic, f"{pt}", stt) for ic, _lb, pt, stt in chips]
+        else:
+            chips_html = None
+        tgt_c = r["Target"] if pd.notna(r["Target"]) else np.nan
+        cards_html.append(salesman_card_html(r["Salesman"], r["Team"], tgt_c, r["Net Sales"], chips_html))
+        rows_png.append({"name": r["Salesman"], "team": r["Team"], "tgt": tgt_c, "cap": r["Net Sales"],
+                         "chips": [(lb, pt, stt) for _ic, lb, pt, stt in chips] if chips else None})
+
+    if not cards_html:
+        st.info("Pilih minimal 1 salesman.")
+    else:
+        st.markdown('<div class="sc-wrap"><div class="sc-grid">' + "".join(cards_html) + "</div></div>",
+                    unsafe_allow_html=True)
+        png_rows = rows_png[:80]
+        png_bytes = render_capaian_png(png_rows, "Capaian Salesman",
+                                       f"Periode {', '.join(map(str, periode_sel)) or '-'}  |  HKE {hke}"
+                                       + (f"  |  ditampilkan {len(png_rows)} dari {len(rows_png)} salesman" if len(rows_png) > 80 else ""))
+        st.download_button("⬇️ Download gambar (PNG) untuk dibagikan", data=png_bytes,
+                           file_name="capaian_salesman.png", mime="image/png", key="dl_salcard_png")
 
 # ---------------------------------------------------------------- By Wilayah
 with tab_wilayah:
@@ -1582,14 +1901,7 @@ with tab_lato:
             is_belum = (tbl_lato["Omzet"] <= 0).reset_index(drop=True)
             display_cols = ["Salesman", "Rayon", COL["outlet"], "Nama Outlet", "Nominal Transaksi"]
             tbl_lato_display = tbl_lato[display_cols].reset_index(drop=True)
-
-            def _highlight_belum(row):
-                if is_belum.loc[row.name]:
-                    return ["background-color: #7f1d1d; color: #FCA5A5"] * len(row)
-                return [""] * len(row)
-
-            styled = tbl_lato_display.style.apply(_highlight_belum, axis=1)
-            show_df(styled, hide_index=True, use_container_width=True, height=460)
+            show_df(tbl_lato_display, height=460, highlight_mask=is_belum)
             download_button(tbl_lato_display, "Download Excel (LATO)", "lato.xlsx", "dl_lato")
 
 # ---------------------------------------------------------------- LTD NPL
@@ -1638,11 +1950,14 @@ with tab_stock:
                    "berbeda — sistem membandingkan stok antar file. **Tidak bergerak** = qty stok identik di SEMUA "
                    "file dan masih > 0. **Cepat bergerak** = total penurunan stok antar file berurutan (kalau ada "
                    "restock di antara dua file, pengeluaran bisa terbaca lebih kecil dari aslinya).")
-        stock_files = st.file_uploader("Upload file stok (.xlsx / .xls / .csv / .txt)",
-                                        type=["xlsx", "xls", "csv", "txt"], accept_multiple_files=True,
+        stock_files = st.file_uploader("Upload file stok (.xlsx / .xls / .csv / .txt / .pdf)",
+                                        type=["xlsx", "xls", "csv", "txt", "pdf"], accept_multiple_files=True,
                                         key="stock_uploader")
         stock_header = st.number_input("Baris header di file (0 = baris pertama)", min_value=0, value=0, step=1,
-                                        key="stock_header_row")
+                                        key="stock_header_row",
+                                        help="Untuk PDF: hitung dari baris tabel pertama yang terbaca.")
+        st.caption("PDF: hanya PDF berbasis teks (hasil cetak/export sistem) — PDF hasil scan/foto tidak bisa "
+                   "dibaca. Header yang berulang di tiap halaman otomatis dibuang.")
 
     if len(stock_files) < 2:
         st.info("Upload minimal 2 file stok (tanggal berbeda) untuk mulai membandingkan.")
@@ -1652,7 +1967,7 @@ with tab_stock:
             try:
                 stock_loaded.append((sf.name, stock_read_file(sf.getvalue(), sf.name, int(stock_header))))
             except Exception as e:  # noqa: BLE001
-                st.error(f"File '{sf.name}' gagal dibaca: {type(e).__name__}. Coba atur 'Baris header'.")
+                st.error(f"File '{sf.name}' gagal dibaca ({type(e).__name__}: {str(e)[:160]}). Coba atur 'Baris header'.")
 
         if len(stock_loaded) < 2:
             st.warning("Kurang dari 2 file yang berhasil dibaca.")
@@ -1660,6 +1975,8 @@ with tab_stock:
             cols0 = [str(c) for c in stock_loaded[0][1].columns]
             with st.container(border=True):
                 st.markdown("**Pengaturan kolom & tanggal**")
+                st.caption(f"Pratinjau 5 baris pertama dari '{stock_loaded[0][0]}' (untuk memastikan kolom terbaca benar):")
+                show_df(stock_loaded[0][1].head(5))
                 m1, m2, m3, m4 = st.columns(4)
                 with m1:
                     c_kode = st.selectbox("Kolom Kode Produk", cols0,
@@ -1783,6 +2100,9 @@ with tab_ss:
         if periode_sel:
             tgt_df_ss = tgt_df_ss[tgt_df_ss[TARGET_ALL_COL["periode"]].isna() | tgt_df_ss[TARGET_ALL_COL["periode"]].isin(periode_sel)]
         target_total_ss = tgt_df_ss[TARGET_ALL_COL["target"]].sum()
+    kode_bt_ss = tgt_df_ss[TARGET_ALL_COL["kode_sales"]].unique().tolist() if not target_all.empty else []
+    pencapaian_bt_ss = (hitung_pencapaian(df_ss_scope[df_ss_scope[COL["kode_sales"]].isin(kode_bt_ss)])[0]
+                        if kode_bt_ss else 0)
 
     team_per_salesman_ss = df_ss_scope.drop_duplicates(subset=[COL["kode_sales"]])[[COL["kode_sales"], "team_simple"]]
     cb_standpro_ss = int(team_per_salesman_ss["team_simple"].map(lambda tm: PRODUKTIVITY_STANDAR.get(tm, {}).get("cb_cover", 0)).sum())
@@ -1825,7 +2145,11 @@ with tab_ss:
         st.markdown("#### 🎯 Insentif Sales Supervisor (Skema IBN M245)")
         st.caption("Reward & Punishment (Tagihan, Visit in Radius) tidak dihitung, sama seperti menu Insentif salesman.")
 
-        pct_sales_ss = (pencapaian_ss / target_total_ss * 100) if target_total_ss else np.nan
+        n_tanpa_target_ss = len(kode_sales_scope_ss) - len(kode_bt_ss)
+        if kode_bt_ss and n_tanpa_target_ss > 0:
+            st.caption(f"⚠️ {n_tanpa_target_ss} dari {len(kode_sales_scope_ss)} salesman belum punya target di file Target — "
+                       "% Capaian Sales dihitung dari salesman yang ber-target saja supaya sebanding.")
+        pct_sales_ss = (pencapaian_bt_ss / target_total_ss * 100) if target_total_ss else np.nan
         insentif_sales_ss = tier_lookup(pct_sales_ss, INSENTIF_TIERS_SS["sales"])
 
         detail_kategori_ss = []
