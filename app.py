@@ -151,30 +151,52 @@ INSENTIF_TIERS_SS = {
     "oa": [(90, 500_000), (95, 1_000_000), (100, 1_500_000)],
 }
 
-ACCENT = "#F5B301"
-PALETTE = ["#F5B301", "#38BDF8", "#34D399", "#F472B6", "#A78BFA", "#FB923C", "#94A3B8", "#F87171", "#4ADE80", "#60A5FA", "#FBBF24"]
+ACCENT = "#F3A6E9"      # pink (aksen utama, mengikuti gaya referensi dashboard)
+ACCENT2 = "#A9A6F7"     # lavender (aksen kedua)
+PALETTE = ["#F3A6E9", "#A9A6F7", "#F7B98B", "#7DD3C0", "#8AB4F8", "#F28FAD",
+           "#C4B5FD", "#FDE68A", "#86EFAC", "#93C5FD", "#FCA5A5"]
+CHART_FONT = "#D9D9E3"
 
 
 # =====================================================================
-# 1. STYLE
+# 1. STYLE — tema gelap ala dashboard referensi (panel membulat, aksen pink/lavender)
 # =====================================================================
 def inject_css():
     st.markdown(f"""
     <style>
+    section[data-testid="stSidebar"] {{ background:#0B0B0F; border-right:1px solid #1d1d24; }}
+    div[data-testid="stVerticalBlockBorderWrapper"] {{
+        border-radius:18px !important; border:1px solid #23232b !important; background:#111116;
+    }}
+    /* Tab menu bergaya pill */
+    div[data-baseweb="tab-list"] {{ gap:6px; }}
+    button[data-baseweb="tab"] {{
+        background:#15151b; border:1px solid #23232b; border-radius:999px !important;
+        padding:8px 16px !important; margin-right:2px;
+    }}
+    button[data-baseweb="tab"][aria-selected="true"] {{
+        background:rgba(169,166,247,0.18); border-color:{ACCENT2}; color:#fff;
+    }}
+    div[data-baseweb="tab-highlight"], div[data-baseweb="tab-border"] {{ display:none; }}
+
     .app-title {{
         text-align:center; text-transform:uppercase; letter-spacing:2px;
         font-size:3.2rem; font-weight:800; margin-bottom:0.1rem; line-height:1.1;
         color: {ACCENT};
         text-shadow:
-            1px 1px 0 #c98f02, 2px 2px 0 #b17f02, 3px 3px 0 #996f02,
-            4px 4px 0 #815f01, 5px 5px 8px rgba(0,0,0,0.55);
+            1px 1px 0 #d48ace, 2px 2px 0 #b874b2, 3px 3px 0 #9c5f96,
+            4px 4px 0 #804b7b, 5px 5px 10px rgba(0,0,0,0.6);
     }}
+    .app-watermark {{ text-align:center; color:#8b8b98; font-size:0.85rem; letter-spacing:0.6px; margin:2px 0 1.2rem; }}
     .app-subtitle {{ text-align:center; color:#9CA3AF; font-size:0.9rem; margin-bottom:1.2rem;}}
     .kpi-box {{
-        border:1px solid #333944; border-radius:12px; padding:16px 18px;
-        background-color:#1C1F26; height:100%; min-height:108px;
+        border:1px solid #23232b; border-radius:18px; padding:16px 18px;
+        background-color:#111116; height:100%; min-height:108px;
     }}
-    .kpi-icon {{ font-size:1.3rem; }}
+    .kpi-icon {{
+        width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+        font-size:1.05rem; background:rgba(243,166,233,0.16); margin-bottom:4px;
+    }}
     .kpi-label {{ font-size:0.8rem; color:#9CA3AF; margin-top:2px; }}
     .kpi-value {{ font-size:1.5rem; font-weight:700; color:#F3F4F6; word-break:break-word; line-height:1.25;}}
     .kpi-sub {{ font-size:0.75rem; color:#9CA3AF; margin-top:4px; }}
@@ -184,23 +206,29 @@ def inject_css():
         text-align:center; font-size:2.4rem; font-weight:800; color:{ACCENT};
         padding:10px 0 2px 0;
     }}
+    /* Kotak Capaian by Divisi (menu By Salesman) */
+    .dv-box {{ border:1px solid #2a2a33; border-radius:12px; padding:8px 10px; background:#14141a; min-height:66px; }}
+    .dv-label {{ font-size:0.62rem; color:#8b8b98; text-transform:uppercase; letter-spacing:0.4px; }}
+    .dv-value {{ font-size:0.92rem; font-weight:700; color:#f3f4f6; word-break:break-word; line-height:1.2; margin-top:2px; }}
+    .dv-sub {{ font-size:0.62rem; color:#8b8b98; margin-top:2px; }}
+    .dv-gap-bad {{ border:2px solid #ef4444; }}
+    .dv-gap-bad .dv-value {{ color:#fca5a5; }}
+    .dv-gap-ok {{ border:2px solid #22c55e; }}
+    .dv-gap-ok .dv-value {{ color:#86efac; }}
 
-    /* Poin 6: mobile-friendly — layar sempit (HP) */
+    /* Mobile-friendly — layar sempit (HP) */
     @media (max-width: 640px) {{
         .app-title {{ font-size:1.7rem; letter-spacing:1px;
-            text-shadow: 1px 1px 0 #c98f02, 2px 2px 0 #b17f02, 3px 3px 5px rgba(0,0,0,0.5); }}
-        .app-subtitle {{ font-size:0.75rem; margin-bottom:0.7rem; }}
+            text-shadow: 1px 1px 0 #d48ace, 2px 2px 0 #b874b2, 3px 3px 5px rgba(0,0,0,0.5); }}
+        .app-watermark {{ font-size:0.7rem; margin-bottom:0.7rem; }}
         .kpi-box {{ padding:10px 12px; min-height:auto; }}
         .kpi-value {{ font-size:1.1rem; }}
         .kpi-label {{ font-size:0.7rem; }}
         .kpi-sub {{ font-size:0.65rem; }}
         .big-nominal {{ font-size:1.6rem; }}
-        div[data-testid="stDataFrame"] {{ font-size:0.75rem; }}
         .block-container {{ padding-left:0.6rem; padding-right:0.6rem; padding-top:1rem; }}
         button[data-baseweb="tab"] {{ padding:6px 10px !important; font-size:0.8rem !important; }}
     }}
-    /* Tabel lebar/panjang tetap bisa di-scroll horizontal di HP, bukan kepotong */
-    div[data-testid="stDataFrame"] {{ overflow-x:auto; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -215,6 +243,39 @@ def kpi_card(icon: str, label: str, value: str, sub: str = "", cmp_html: str = "
         {cmp_html}
     </div>
     """, unsafe_allow_html=True)
+
+
+def dv_box(label: str, value: str, sub: str = "", css_class: str = ""):
+    st.markdown(f"""
+    <div class="dv-box {css_class}">
+        <div class="dv-label">{label}</div>
+        <div class="dv-value">{value}</div>
+        <div class="dv-sub">{sub}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def show_df(df, **kw):
+    """Pembungkus st.dataframe. Tabel LEBAR (>= 8 kolom) tidak dipaksa muat ke lebar
+    kontainer (use_container_width=False), supaya kolomnya tetap punya lebar wajar dan
+    tabel bisa di-scroll ke kanan — kalau dipaksa muat, kolom malah kepotong/menyempit."""
+    base = getattr(df, "data", df)  # Styler -> DataFrame
+    n_cols = base.shape[1] if hasattr(base, "shape") else 0
+    kw.setdefault("hide_index", True)
+    kw.pop("use_container_width", None)
+    stretch = n_cols < 8
+    try:
+        st.dataframe(df, width="stretch" if stretch else "content", **kw)
+    except Exception:  # Streamlit versi lama belum punya width="stretch"/"content"
+        st.dataframe(df, use_container_width=stretch, **kw)
+
+
+def show_chart(fig):
+    """st.plotly_chart selebar kontainer — pakai width baru, fallback ke versi lama."""
+    try:
+        st.plotly_chart(fig, width="stretch")
+    except Exception:
+        show_chart(fig)
 
 
 def fmt_rp(n) -> str:
@@ -647,17 +708,21 @@ def check_password() -> bool:
     """Gerbang password sederhana. Password diset lewat Streamlit Secrets
     (APP_PASSWORD) — kalau secret ini tidak diset (mis. saat develop lokal),
     gerbang dilewati otomatis supaya tidak menghalangi development."""
-    app_password = st.secrets.get("APP_PASSWORD") if hasattr(st, "secrets") else None
+    try:
+        app_password = st.secrets.get("APP_PASSWORD")
+    except Exception:  # tidak ada secrets.toml sama sekali (mis. jalan lokal) -> tanpa password
+        app_password = None
     if not app_password:
         return True
     if st.session_state.get("app_authenticated"):
         return True
     st.markdown('<div class="app-title">Dashboard Operational Area MV42</div>', unsafe_allow_html=True)
+    st.markdown('<div class="app-watermark">&copy; Created by Adelard</div>', unsafe_allow_html=True)
     st.markdown('<div class="app-subtitle">Masukkan password untuk mengakses dashboard</div>', unsafe_allow_html=True)
     _, mid, _ = st.columns([1, 1, 1])
     with mid:
         pw = st.text_input("Password", type="password", label_visibility="collapsed")
-        if st.button("Masuk", use_container_width=True):
+        if st.button("Masuk", width="stretch"):
             if pw == app_password:
                 st.session_state.app_authenticated = True
                 st.rerun()
@@ -780,6 +845,17 @@ with st.sidebar:
     salesman_terpilih = st.multiselect("Salesman Terpilih", salesman_opts,
                                         default=salesman_opts if pilih_semua else [])
 
+import hashlib
+
+
+def fkey(name: str, *selections) -> str:
+    """Key widget filter lokal per-menu yang ikut berubah kalau pilihan salesman di
+    sidebar (atau filter induknya) berubah. Tanpa ini Streamlit mengingat pilihan lama
+    dari key yang sama, sehingga menu tidak ikut mengikuti salesman yang dipilih di Option."""
+    raw = "|".join(",".join(map(str, s)) for s in (salesman_terpilih, *selections))
+    return f"{name}_{hashlib.md5(raw.encode()).hexdigest()[:8]}"
+
+
 df_lbp = lbp_by_year[tahun_aktif]
 df_sales_scope = df_lbp[df_lbp[COL["salesman"]].isin(salesman_terpilih)] if salesman_terpilih else df_lbp.iloc[0:0]
 
@@ -821,12 +897,7 @@ if bandingkan:
 # 5. HEADER & TOP BAR
 # =====================================================================
 st.markdown('<div class="app-title">Dashboard Operational Area MV42</div>', unsafe_allow_html=True)
-st.markdown(
-    f'<div class="app-subtitle">Tahun {tahun_aktif} &middot; Periode {", ".join(map(str, periode_sel)) or "-"} '
-    f'&middot; {len(salesman_terpilih)} salesman terpilih'
-    f'{" &middot; komparasi vs " + str(tahun_aktif - 1) + " aktif" if bandingkan else ""}</div>',
-    unsafe_allow_html=True,
-)
+st.markdown('<div class="app-watermark">&copy; Created by Adelard</div>', unsafe_allow_html=True)
 
 pencapaian, bruto_f, bruto_r, pct_retur = hitung_pencapaian(df_filtered)
 oa_total = hitung_oa(df_filtered)
@@ -866,18 +937,180 @@ st.divider()
 # =====================================================================
 # 6. TABS
 # =====================================================================
+def stock_read_file(file_bytes: bytes, file_name: str, header_row: int = 0) -> pd.DataFrame:
+    from io import BytesIO
+    buf = BytesIO(file_bytes)
+    if file_name.lower().endswith((".xlsx", ".xls")):
+        return pd.read_excel(buf, header=header_row, dtype=str)
+    return pd.read_csv(buf, sep=None, engine="python", header=header_row, dtype=str, index_col=False)
+
+
+def stock_guess_date(file_name: str):
+    from datetime import date
+    m = re.search(r"(20\d{2})[-_.]?(\d{2})[-_.]?(\d{2})", file_name)
+    if m:
+        try:
+            return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            pass
+    m = re.search(r"(\d{2})[-_.](\d{2})[-_.](20\d{2})", file_name)
+    if m:
+        try:
+            return date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+        except ValueError:
+            pass
+    return None
+
+
+def stock_to_num(s: pd.Series) -> pd.Series:
+    def conv(x: str) -> str:
+        x = re.sub(r"[^\d,.\-]", "", str(x).strip())
+        if "," in x and "." in x:  # 1.234,56 atau 1,234.56
+            return x.replace(".", "").replace(",", ".") if x.rfind(",") > x.rfind(".") else x.replace(",", "")
+        if "," in x:
+            head, _, tail = x.rpartition(",")
+            return head.replace(",", "") + "." + tail if len(tail) <= 2 else x.replace(",", "")
+        if "." in x:  # format Indonesia: 1.000 / 12.345 / 1.234.567 = pemisah ribuan
+            parts = x.split(".")
+            if len(parts) > 2 or (len(parts[-1]) == 3 and parts[0].lstrip("-") not in ("", "0")):
+                return x.replace(".", "")
+        return x
+    return pd.to_numeric(s.apply(conv), errors="coerce").fillna(0)
+
+
+def stock_guess_col(columns, keywords, default_first=True):
+    for kw in keywords:
+        for i, c in enumerate(columns):
+            if kw in str(c).lower():
+                return i
+    return 0 if default_first else None
+
+
+MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+TREND_METRICS = ["Omzet Neto (Rp)", "OA (Outlet Aktif)", "EC (Effective Call)"]
+
+
+def build_trend(df: pd.DataFrame, gran: str, metric: str, shift_year: bool = False) -> pd.DataFrame:
+    """Data grafik garis. gran: Daily/Weekly/Monthly. Kolom hasil: x (sortable), label, y."""
+    empty = pd.DataFrame(columns=["x", "label", "y"])
+    if df is None or df.empty:
+        return empty
+    d = df.copy()
+    d["_date"] = d[COL["tanggal"]].dt.normalize()
+    key = {"Daily": "_date", "Weekly": COL["week"], "Monthly": COL["periode"]}[gran]
+    f = d[d[COL["transtype"]] == "F"]
+
+    if metric.startswith("Omzet"):
+        s = d.groupby(key)[COL["bruto"]].sum()          # F + R (R sudah negatif) = neto
+    elif metric.startswith("OA"):
+        s = f.groupby(key)[COL["outlet"]].nunique()
+    else:  # EC: outlet unik per hari per salesman, dijumlahkan per bucket
+        daily = f.groupby([COL["kode_sales"], "_date"])[COL["outlet"]].nunique().reset_index(name="v")
+        if key == "_date":
+            daily["_k"] = daily["_date"]
+        else:
+            kmap = d.drop_duplicates("_date").set_index("_date")[key]
+            daily["_k"] = daily["_date"].map(kmap)
+        s = daily.groupby("_k")["v"].sum()
+
+    out = s.reset_index()
+    out.columns = ["x", "y"]
+    out = out.dropna(subset=["x"]).sort_values("x").reset_index(drop=True)
+    if gran == "Daily":
+        if shift_year:  # geser +1 tahun supaya menimpa tahun berjalan
+            out["x"] = out["x"] + pd.DateOffset(years=1)
+        out["label"] = out["x"].dt.strftime("%d %b")
+    elif gran == "Weekly":
+        out["x"] = out["x"].astype(int)
+        out["label"] = out["x"].apply(lambda w: f"W{w}")
+    else:
+        out["x"] = out["x"].astype(int)
+        out["label"] = out["x"].apply(lambda p: MONTH_ABBR[p - 1] if 1 <= p <= 12 else f"P{p}")
+    return out
+
+
+def trend_figure(cur: pd.DataFrame, prev: pd.DataFrame | None, gran: str, metric: str,
+                 year_cur: int, year_prev: int | None) -> go.Figure:
+    is_rp = metric.startswith("Omzet")
+    val_fmt = "Rp %{y:,.0f}" if is_rp else "%{y:,.0f}"
+    fig = go.Figure()
+
+    def add(df_, name, color, dash, fill):
+        if df_ is None or df_.empty:
+            return
+        x = df_["x"] if gran == "Daily" else df_["label"]
+        hover_x = "%{x|%d %b %Y}" if gran == "Daily" else "%{x}"
+        fig.add_trace(go.Scatter(
+            x=x, y=df_["y"], name=name, mode="lines+markers",
+            line=dict(color=color, width=3, shape="spline", smoothing=1.1, dash=dash),
+            marker=dict(size=8 if not dash else 6, color=color, line=dict(color="#0B0B0F", width=2)),
+            fill="tozeroy" if fill else None,
+            fillcolor="rgba(243,166,233,0.12)" if fill else None,
+            hovertemplate=f"{hover_x}<br>{val_fmt}<extra>{name}</extra>",
+        ))
+
+    add(cur, str(year_cur), ACCENT, None, True)
+    if prev is not None and not prev.empty:
+        add(prev, str(year_prev), ACCENT2, "dot", False)
+
+    if gran != "Daily":  # urutan kategori sesuai waktu (gabungan tahun berjalan & pembanding)
+        both = pd.concat([cur, prev if prev is not None else cur.iloc[0:0]]).drop_duplicates("label").sort_values("x")
+        fig.update_xaxes(type="category", categoryorder="array", categoryarray=both["label"].tolist())
+    else:
+        fig.update_xaxes(tickformat="%d %b")
+
+    fig.update_layout(
+        height=400, margin=dict(t=20, b=10, l=10, r=10), hovermode="x unified",
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=CHART_FONT, size=13),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
+        xaxis=dict(showgrid=False, zeroline=False),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.06)", zeroline=False, tickformat=",.0f" if not is_rp else ".2s"),
+    )
+    return fig
+
+
 ringkasan_sales = ringkasan_by_salesman(df_filtered, target_all, periode_sel, hke)
 mhs_resume_all = hitung_mhs_resume(df_filtered)
 mhs_by_sales_all = hitung_mhs_by_salesman(mhs_resume_all, df_filtered, outlet_count_dmp)
 
 (tab_overview, tab_sales, tab_wilayah, tab_subbrand, tab_mhs, tab_insentif, tab_lato,
- tab_ltdnpl, tab_paretto, tab_ss, tab_readme) = st.tabs(
+ tab_ltdnpl, tab_paretto, tab_stock, tab_ss, tab_readme) = st.tabs(
     ["📊 Overview", "🧑‍💼 By Salesman", "🗺️ By Wilayah", "🏷️ By Subbrand & Divisi",
-     "📦 MHS", "🎯 Insentif", "📋 LATO", "🆕 LTD NPL", "📐 Paretto", "📈 Performance SS", "📖 Read Me"]
+     "📦 MHS", "🎯 Insentif", "📋 LATO", "🆕 LTD NPL", "📐 Paretto", "🗃️ Stock",
+     "📈 Performance SS", "📖 Read Me"]
 )
 
 # ---------------------------------------------------------------- Overview
 with tab_overview:
+    with st.container(border=True):
+        h1, h2, h3 = st.columns([1.5, 1.2, 1.5])
+        with h1:
+            st.markdown("#### 📈 Tren Penjualan")
+        with h2:
+            trend_metric = st.selectbox("Metrik grafik", TREND_METRICS, key="trend_metric", label_visibility="collapsed")
+        with h3:
+            if hasattr(st, "segmented_control"):
+                trend_gran = st.segmented_control("Periode grafik", ["Daily", "Weekly", "Monthly"], default="Daily",
+                                                   key="trend_gran", label_visibility="collapsed")
+            else:
+                trend_gran = st.radio("Periode grafik", ["Daily", "Weekly", "Monthly"], horizontal=True,
+                                       key="trend_gran", label_visibility="collapsed")
+        trend_gran = trend_gran or "Daily"
+
+        trend_cur = build_trend(df_filtered, trend_gran, trend_metric)
+        trend_prev = None
+        if bandingkan and df_filtered_prev is not None:
+            trend_prev = build_trend(df_filtered_prev, trend_gran, trend_metric, shift_year=True)
+        if trend_cur.empty:
+            st.info("Belum ada data untuk ditampilkan pada filter saat ini.")
+        else:
+            show_chart(trend_figure(trend_cur, trend_prev, trend_gran, trend_metric,
+                                     tahun_aktif, tahun_aktif - 1))
+            st.caption("Arahkan kursor ke titik grafik untuk melihat angkanya. Garis putus-putus = tahun lalu "
+                       "(aktif kalau 'Bandingkan dengan tahun lalu' dicentang di sidebar).")
+
+    st.write("")
     with st.container(border=True):
         st.markdown("#### 🏪 Klasifikasi Outlet & Omzet per Tipe Outlet")
         f_only = df_filtered[df_filtered[COL["transtype"]] == "F"]
@@ -890,13 +1123,13 @@ with tab_overview:
 
         colA, colB = st.columns([1.1, 1])
         with colA:
-            st.dataframe(format_cols(tbl_tipe[["Tipe Outlet", "Jumlah Outlet", "Omzet"]], rp_cols=["Omzet"]),
+            show_df(format_cols(tbl_tipe[["Tipe Outlet", "Jumlah Outlet", "Omzet"]], rp_cols=["Omzet"]),
                          hide_index=True, use_container_width=True, height=380)
             download_button(tbl_tipe[["Tipe Outlet", "Jumlah Outlet", "Omzet"]],
                              "Download Excel (Klasifikasi Outlet)", "overview_klasifikasi_outlet.xlsx", "dl_ov1")
         with colB:
             pie_tipe = top_categories_for_pie(tbl_tipe[["Tipe Outlet", "Omzet"]], "Tipe Outlet", "Omzet", 6, False)
-            st.plotly_chart(pie_chart(pie_tipe, "Tipe Outlet", "Omzet", "Omzet per Tipe Outlet"), use_container_width=True)
+            show_chart(pie_chart(pie_tipe, "Tipe Outlet", "Omzet", "Omzet per Tipe Outlet"))
 
     st.write("")
     with st.container(border=True):
@@ -904,24 +1137,24 @@ with tab_overview:
         oc1, oc2, oc3 = st.columns(3)
         with oc1:
             st.markdown("**👤 Salesman**")
-            st.dataframe(format_cols(ringkasan_sales[["Salesman", "Net Sales"]], rp_cols=["Net Sales"]),
+            show_df(format_cols(ringkasan_sales[["Salesman", "Net Sales"]], rp_cols=["Net Sales"]),
                          hide_index=True, use_container_width=True, height=240)
             pie_sales = top_categories_for_pie(ringkasan_sales[["Salesman", "Net Sales"]], "Salesman", "Net Sales", 6, False)
-            st.plotly_chart(pie_chart(pie_sales, "Salesman", "Net Sales"), use_container_width=True)
+            show_chart(pie_chart(pie_sales, "Salesman", "Net Sales"))
         with oc2:
             st.markdown("**📍 Wilayah (Kabupaten)**")
             net_wil = net_by_group(df_filtered, [COL["kabupaten"]], "Omzet").sort_values("Omzet", ascending=False)
-            st.dataframe(format_cols(net_wil[[COL["kabupaten"], "Omzet"]], rp_cols=["Omzet"]),
+            show_df(format_cols(net_wil[[COL["kabupaten"], "Omzet"]], rp_cols=["Omzet"]),
                          hide_index=True, use_container_width=True, height=240)
             pie_wil = top_categories_for_pie(net_wil[[COL["kabupaten"], "Omzet"]], COL["kabupaten"], "Omzet", 6, False)
-            st.plotly_chart(pie_chart(pie_wil, COL["kabupaten"], "Omzet"), use_container_width=True)
+            show_chart(pie_chart(pie_wil, COL["kabupaten"], "Omzet"))
         with oc3:
             st.markdown("**🏷️ Subbrand**")
             net_sb = net_by_group(df_filtered, [COL["subbrand_name"]], "Omzet").sort_values("Omzet", ascending=False)
-            st.dataframe(format_cols(net_sb[[COL["subbrand_name"], "Omzet"]], rp_cols=["Omzet"]),
+            show_df(format_cols(net_sb[[COL["subbrand_name"], "Omzet"]], rp_cols=["Omzet"]),
                          hide_index=True, use_container_width=True, height=240)
             pie_sb = top_categories_for_pie(net_sb[[COL["subbrand_name"], "Omzet"]], COL["subbrand_name"], "Omzet", 6, False)
-            st.plotly_chart(pie_chart(pie_sb, COL["subbrand_name"], "Omzet"), use_container_width=True)
+            show_chart(pie_chart(pie_sb, COL["subbrand_name"], "Omzet"))
 
 # ---------------------------------------------------------------- By Salesman
 with tab_sales:
@@ -931,13 +1164,13 @@ with tab_sales:
                    "bertransaksi (F saja) per hari, dijumlahkan sepanjang periode. Target/Gap kosong "
                    "ditampilkan '-' kalau file Target belum diupload.")
         salesman_filter_sales = st.multiselect("Filter salesman khusus menu ini", salesman_terpilih,
-                                                default=salesman_terpilih, key="sales_salesman_filter")
+                                                default=salesman_terpilih, key=fkey("sales_salesman_filter"))
         ringkasan_view = ringkasan_sales[ringkasan_sales["Salesman"].isin(salesman_filter_sales)] if salesman_filter_sales else ringkasan_sales.iloc[0:0]
         show = format_cols(ringkasan_view, rp_cols=["Net Sales", "Bruto F", "Bruto R", "Target", "Gap Harian"],
                             pct_cols=["% Capaian", "% OA"])
         kolom_tampil = ["Kode Sales", "Salesman", "Team", "Target", "Net Sales", "% Capaian",
                         "OA", "% OA", "EC", "Gap Harian", "Avg SKU"]
-        st.dataframe(show[kolom_tampil], hide_index=True, use_container_width=True, height=380)
+        show_df(show[kolom_tampil], hide_index=True, use_container_width=True, height=380)
         download_button(ringkasan_view, "Download Excel (By Salesman)", "by_salesman.xlsx", "dl_sales")
 
     st.write("")
@@ -968,6 +1201,57 @@ with tab_sales:
             ["Salesman", "Divisi", "Target", "Net Sales", "% Capaian", "Gap Harian"]
         ]
 
+        # --- Kotak ringkasan per Divisi: 2 kategori di atas (Coffee, Cereal) & 2 di bawah
+        #     (Instant Food, Homecare). Nilainya gabungan dari salesman yang sedang difilter;
+        #     kalau hanya 1 salesman dipilih, kotak Salesman menampilkan namanya.
+        n_sales_div = len(salesman_filter_sales)
+        sales_label = salesman_filter_sales[0] if n_sales_div == 1 else f"{n_sales_div} Salesman"
+        div_icon = {"Coffee": "☕", "Cereal": "🥣", "Instant Food": "🍜", "Homecare": "🧴"}
+
+        def render_divisi_panel(lbl: str):
+            sub = tbl_div_long[tbl_div_long["Divisi"] == lbl]
+            # Capaian hanya dari salesman yang PUNYA target di divisi ini — kalau semua penjualan
+            # ikut dijumlah sementara target cuma ada untuk sebagian salesman, % capaian menyesatkan.
+            sub_t = sub[sub["Target"].notna()]
+            tgt = sub_t["Target"].sum() if not sub_t.empty else np.nan
+            cap = sub_t["Net Sales"].sum() if not sub_t.empty else 0
+            pct = (cap / tgt * 100) if pd.notna(tgt) and tgt else np.nan
+            with st.container(border=True):
+                st.markdown(f"**{div_icon[lbl]} {lbl}**")
+                c1, c2, c3, c4, c5 = st.columns([2.2, 1.7, 1.7, 0.9, 1.8])
+                with c1:
+                    n_ber_target = sub_t["Salesman"].nunique()
+                    dv_box("Salesman", sales_label,
+                           f"{n_ber_target} salesman ber-target" if n_sales_div > 1 else "")
+                with c2:
+                    dv_box("Target", fmt_rp(tgt))
+                with c3:
+                    dv_box("Capaian", fmt_rp(cap))
+                with c4:
+                    dv_box("%", fmt_pct(pct))
+                with c5:
+                    if pd.isna(tgt) or not tgt:
+                        dv_box("Gap Harian", "-", "target belum ada")
+                    elif cap >= tgt:
+                        dv_box("Gap Harian", "✓ Tercapai", f"lebih {fmt_rp(cap - tgt)}", "dv-gap-ok")
+                    else:
+                        gap_h = (tgt - cap) / hke if hke else np.nan
+                        gap_txt = "-" if pd.isna(gap_h) else "-" + fmt_rp(gap_h)
+                        dv_box("Gap Harian", gap_txt, f"kurang {fmt_rp(tgt - cap)}", "dv-gap-bad")
+
+        row1 = st.columns(2)
+        with row1[0]:
+            render_divisi_panel("Coffee")
+        with row1[1]:
+            render_divisi_panel("Cereal")
+        row2 = st.columns(2)
+        with row2[0]:
+            render_divisi_panel("Instant Food")
+        with row2[1]:
+            render_divisi_panel("Homecare")
+
+        st.markdown("**Rincian per salesman**")
+
         # Pivot memanjang ke kanan: tiap Divisi jadi 4 kolom (Target/Net Sales/% Capaian/Gap Harian)
         # bersebelahan, satu baris per Salesman — bukan satu baris per Salesman x Divisi.
         wide_parts = []
@@ -982,7 +1266,7 @@ with tab_sales:
             wide_parts.append(sub)
         tbl_div_wide = pd.concat(wide_parts, axis=1).reset_index() if wide_parts else pd.DataFrame(columns=["Salesman"])
 
-        st.dataframe(format_cols(tbl_div_wide, rp_cols=rp_cols_wide, pct_cols=pct_cols_wide),
+        show_df(format_cols(tbl_div_wide, rp_cols=rp_cols_wide, pct_cols=pct_cols_wide),
                      hide_index=True, use_container_width=True, height=280)
         download_button(tbl_div_long, "Download Excel (Capaian by Divisi)", "by_salesman_divisi.xlsx", "dl_sales_div")
 
@@ -1000,13 +1284,13 @@ with tab_wilayah:
             agg = net_by_group(df_filtered, [col], "Omzet").sort_values("Omzet", ascending=False)
             colL, colR = st.columns([1.1, 1])
             with colL:
-                st.dataframe(format_cols(agg[[col, "Omzet"]], rp_cols=["Omzet"]),
+                show_df(format_cols(agg[[col, "Omzet"]], rp_cols=["Omzet"]),
                              hide_index=True, use_container_width=True, height=380)
                 download_button(agg, f"Download Excel ({label})", f"wilayah_{label.lower()}.xlsx", f"dl_wil_{label}")
             with colR:
                 n_pie, other_pie = pie_config[label]
                 pie_data = top_categories_for_pie(agg[[col, "Omzet"]], col, "Omzet", n_pie, other_pie)
-                st.plotly_chart(pie_chart(pie_data, col, "Omzet", f"Kontribusi Omzet by {label}"), use_container_width=True)
+                show_chart(pie_chart(pie_data, col, "Omzet", f"Kontribusi Omzet by {label}"))
         st.write("")
 
     with st.container(border=True):
@@ -1019,7 +1303,7 @@ with tab_wilayah:
         agg_pasar = net_by_group(dfp, [COL["kode_pasar"]], "Omzet").sort_values("Omzet", ascending=False)
         colL, colR = st.columns([1.1, 1])
         with colL:
-            st.dataframe(format_cols(agg_pasar[[COL["kode_pasar"], "Omzet"]], rp_cols=["Omzet"]),
+            show_df(format_cols(agg_pasar[[COL["kode_pasar"], "Omzet"]], rp_cols=["Omzet"]),
                          hide_index=True, use_container_width=True, height=380)
             download_button(agg_pasar, "Download Excel (Pasar)", "wilayah_pasar.xlsx", "dl_pasar")
         with colR:
@@ -1027,7 +1311,7 @@ with tab_wilayah:
                 st.info("Tidak ada data pasar dengan nama resmi (selain N/A) pada filter saat ini.")
             else:
                 pie_pasar = top_categories_for_pie(agg_pasar[[COL["kode_pasar"], "Omzet"]], COL["kode_pasar"], "Omzet", 15, False)
-                st.plotly_chart(pie_chart(pie_pasar, COL["kode_pasar"], "Omzet", "Kontribusi Omzet by Pasar"), use_container_width=True)
+                show_chart(pie_chart(pie_pasar, COL["kode_pasar"], "Omzet", "Kontribusi Omzet by Pasar"))
 
 # ---------------------------------------------------------------- By Subbrand & Divisi
 with tab_subbrand:
@@ -1036,12 +1320,12 @@ with tab_subbrand:
         agg_sb = net_by_group(df_filtered, [COL["subbrand_name"]], "Omzet").sort_values("Omzet", ascending=False)
         colL, colR = st.columns([1.1, 1])
         with colL:
-            st.dataframe(format_cols(agg_sb[[COL["subbrand_name"], "Omzet"]], rp_cols=["Omzet"]),
+            show_df(format_cols(agg_sb[[COL["subbrand_name"], "Omzet"]], rp_cols=["Omzet"]),
                          hide_index=True, use_container_width=True, height=380)
             download_button(agg_sb, "Download Excel (Subbrand)", "subbrand.xlsx", "dl_sb")
         with colR:
             pie_sb2 = top_categories_for_pie(agg_sb[[COL["subbrand_name"], "Omzet"]], COL["subbrand_name"], "Omzet", 10, True)
-            st.plotly_chart(pie_chart(pie_sb2, COL["subbrand_name"], "Omzet", "Kontribusi per Subbrand"), use_container_width=True)
+            show_chart(pie_chart(pie_sb2, COL["subbrand_name"], "Omzet", "Kontribusi per Subbrand"))
 
     st.write("")
     with st.container(border=True):
@@ -1050,18 +1334,18 @@ with tab_subbrand:
         agg_dv = net_by_group(df_filtered, [COL["divisi"]], "Omzet").sort_values("Omzet", ascending=False)
         colL, colR = st.columns([1.1, 1])
         with colL:
-            st.dataframe(format_cols(agg_dv[[COL["divisi"], "Omzet"]], rp_cols=["Omzet"]),
+            show_df(format_cols(agg_dv[[COL["divisi"], "Omzet"]], rp_cols=["Omzet"]),
                          hide_index=True, use_container_width=True, height=380)
             download_button(agg_dv, "Download Excel (Divisi)", "divisi.xlsx", "dl_dv")
         with colR:
             pie_dv = top_categories_for_pie(agg_dv[[COL["divisi"], "Omzet"]], COL["divisi"], "Omzet", 10, True)
-            st.plotly_chart(pie_chart(pie_dv, COL["divisi"], "Omzet", "Kontribusi per Divisi"), use_container_width=True)
+            show_chart(pie_chart(pie_dv, COL["divisi"], "Omzet", "Kontribusi per Divisi"))
 
     st.write("")
     with st.container(border=True):
         st.markdown("#### 👤 Breakdown Subbrand per Salesman")
         st.caption("Pilih satu salesman untuk melihat kontribusi Omzet, EC, dan OA di setiap subbrand-nya.")
-        salesman_for_breakdown = st.selectbox("Pilih salesman", salesman_terpilih, key="divisi_salesman_breakdown")
+        salesman_for_breakdown = st.selectbox("Pilih salesman", salesman_terpilih, key=fkey("divisi_salesman_breakdown"))
         df_one_sales = df_filtered[df_filtered[COL["salesman"]] == salesman_for_breakdown]
         f_one_sales = df_one_sales[df_one_sales[COL["transtype"]] == "F"]
 
@@ -1075,7 +1359,7 @@ with tab_subbrand:
         tbl_breakdown = net_sb_sales.merge(ec_sb_sales, on=COL["subbrand_name"], how="left") \
             .merge(oa_sb_sales, on=COL["subbrand_name"], how="left").fillna(0)
         tbl_breakdown = tbl_breakdown[[COL["subbrand_name"], "Omzet", "EC", "OA"]].sort_values("Omzet", ascending=False)
-        st.dataframe(format_cols(tbl_breakdown, rp_cols=["Omzet"]), hide_index=True, use_container_width=True, height=340)
+        show_df(format_cols(tbl_breakdown, rp_cols=["Omzet"]), hide_index=True, use_container_width=True, height=340)
         download_button(tbl_breakdown, "Download Excel (Breakdown Subbrand per Salesman)",
                          f"breakdown_subbrand_{salesman_for_breakdown}.xlsx", "dl_breakdown_sb")
 
@@ -1089,10 +1373,10 @@ with tab_mhs:
                    "— bukan lagi dari Tipe Outlet di LBP.")
         colf1, colf2 = st.columns(2)
         with colf1:
-            salesman_mhs = st.multiselect("Filter salesman", salesman_terpilih, default=salesman_terpilih, key="mhs_salesman_filter")
+            salesman_mhs = st.multiselect("Filter salesman", salesman_terpilih, default=salesman_terpilih, key=fkey("mhs_salesman_filter"))
         with colf2:
             rayon_opts = sorted(df_filtered["Rayon"].dropna().unique().tolist())
-            rayon_mhs = st.multiselect("Filter Rayon", rayon_opts, default=rayon_opts, key="mhs_rayon_filter")
+            rayon_mhs = st.multiselect("Filter Rayon", rayon_opts, default=rayon_opts, key=fkey("mhs_rayon_filter", salesman_mhs))
 
         df_mhs_scope = df_filtered[df_filtered[COL["salesman"]].isin(salesman_mhs)] if salesman_mhs else df_filtered.iloc[0:0]
         if rayon_opts:
@@ -1106,13 +1390,13 @@ with tab_mhs:
             kolom_mhs = ["No Outlet", "Nama Outlet", "Salesman", "Rayon", "Kategori Channel", "Channel",
                          "Target SKU", "SKU Terjual", "Kekurangan SKU"]
             kolom_mhs = [c for c in kolom_mhs if c in tampil_with_rayon.columns]
-            st.dataframe(tampil_with_rayon[kolom_mhs], hide_index=True, use_container_width=True, height=380)
+            show_df(tampil_with_rayon[kolom_mhs], hide_index=True, use_container_width=True, height=380)
             download_button(tampil_with_rayon, "Download Excel (MHS Resume)", "mhs_resume.xlsx", "dl_mhs")
         with colR:
             n_lolos = int(tampil["Lolos MHS"].sum()) if not tampil.empty else 0
             n_belum = int((~tampil["Lolos MHS"]).sum()) if not tampil.empty else 0
             pie_mhs = pd.DataFrame({"Status": ["✅ Lolos MHS", "⚠️ Belum Lolos"], "Jumlah": [n_lolos, n_belum]})
-            st.plotly_chart(pie_chart(pie_mhs, "Status", "Jumlah", "Status Kelolosan MHS"), use_container_width=True)
+            show_chart(pie_chart(pie_mhs, "Status", "Jumlah", "Status Kelolosan MHS"))
 
     st.write("")
     with st.container(border=True):
@@ -1123,9 +1407,9 @@ with tab_mhs:
         pct_mhs_overall = (total_lolos / total_cb * 100) if total_cb else 0
         colg, colt = st.columns([1, 1.4])
         with colg:
-            st.plotly_chart(gauge_chart(pct_mhs_overall, "% MHS Keseluruhan"), use_container_width=True)
+            show_chart(gauge_chart(pct_mhs_overall, "% MHS Keseluruhan"))
         with colt:
-            st.dataframe(format_cols(mhs_by_sales, pct_cols=["% MHS"]), hide_index=True,
+            show_df(format_cols(mhs_by_sales, pct_cols=["% MHS"]), hide_index=True,
                          use_container_width=True, height=320)
 
     st.write("")
@@ -1146,12 +1430,12 @@ with tab_mhs:
             cL, cR = st.columns(2)
             with cL:
                 st.markdown("**✅ SKU sudah masuk**")
-                st.dataframe(sku_outlet, hide_index=True, use_container_width=True, height=300)
+                show_df(sku_outlet, hide_index=True, use_container_width=True, height=300)
             with cR:
                 st.markdown(f"**⚠️ SKU belum masuk** (vs SKU lain yang laku di kategori '{kategori_sel}')")
                 sudah_norm = f_only_mhs.loc[f_only_mhs[COL["outlet"]] == no_outlet_sel, "_produk_norm"]
                 belum_masuk = semua_sku_tipe[~semua_sku_tipe["_produk_norm"].isin(sudah_norm)][[COL["pcode"], COL["nama_produk"]]]
-                st.dataframe(belum_masuk, hide_index=True, use_container_width=True, height=300)
+                show_df(belum_masuk, hide_index=True, use_container_width=True, height=300)
 
     st.write("")
     with st.container(border=True):
@@ -1164,7 +1448,7 @@ with tab_mhs:
                           "Kekurangan SKU", "Status"]
         kolom_summary = [c for c in kolom_summary if c in summary_outlet.columns]
         summary_outlet = summary_outlet[kolom_summary].sort_values(["Salesman", "Kekurangan SKU"], ascending=[True, False])
-        st.dataframe(summary_outlet, hide_index=True, use_container_width=True, height=380)
+        show_df(summary_outlet, hide_index=True, use_container_width=True, height=380)
         download_button(summary_outlet, "Download Excel (Summary per Outlet — siap dibagikan)",
                          "mhs_summary_per_outlet.xlsx", "dl_mhs_summary")
 
@@ -1178,7 +1462,7 @@ with tab_insentif:
         salesman_insentif_opts = ringkasan_sales.loc[ringkasan_sales["Team"].isin(list(INSENTIF_TIERS.keys())), "Salesman"].tolist()
         salesman_insentif_opts = [s for s in salesman_insentif_opts if s in salesman_terpilih]
         salesman_pilih_insentif = st.multiselect("Filter salesman", salesman_insentif_opts,
-                                                  default=salesman_insentif_opts, key="insentif_salesman_filter")
+                                                  default=salesman_insentif_opts, key=fkey("insentif_salesman_filter"))
 
         rows = []
         for _, r in ringkasan_sales[ringkasan_sales["Salesman"].isin(salesman_pilih_insentif)].iterrows():
@@ -1251,11 +1535,11 @@ with tab_insentif:
             show_ins = format_cols(tbl_insentif, rp_cols=["Insentif Sales", "Insentif Kategori (4 Divisi)",
                                                             "Insentif MHS", "Insentif OA", "Total Insentif"],
                                     pct_cols=["% Capaian Sales", "% MHS", "% OA"])
-            st.dataframe(show_ins[["Kode Sales", "Salesman", "Team", "% Capaian Sales", "Insentif Sales",
+            show_df(show_ins[["Kode Sales", "Salesman", "Team", "% Capaian Sales", "Insentif Sales",
                                     "Insentif Kategori (4 Divisi)", "% MHS", "Insentif MHS", "% OA", "Insentif OA",
                                     "Total Insentif"]], hide_index=True, use_container_width=True, height=340)
             with st.expander("Lihat rincian per Divisi (Coffee/Cereal/Instant Food/Homecare)"):
-                st.dataframe(tbl_insentif[["Salesman", "Detail Kategori"]], hide_index=True, use_container_width=True)
+                show_df(tbl_insentif[["Salesman", "Detail Kategori"]], hide_index=True, use_container_width=True)
             download_button(tbl_insentif.drop(columns=["Detail Kategori"]), "Download Excel (Insentif)",
                              "insentif.xlsx", "dl_insentif")
 
@@ -1274,10 +1558,10 @@ with tab_lato:
             cf1, cf2 = st.columns(2)
             with cf1:
                 salesman_lato = st.multiselect("Filter salesman", salesman_terpilih, default=salesman_terpilih,
-                                                key="lato_salesman_filter")
+                                                key=fkey("lato_salesman_filter"))
             with cf2:
                 rayon_lato_opts = sorted(dmp_master.loc[dmp_master["Salesman"].isin(salesman_lato), "Rayon"].dropna().unique().tolist())
-                rayon_lato = st.multiselect("Filter Rayon", rayon_lato_opts, default=rayon_lato_opts, key="lato_rayon_filter")
+                rayon_lato = st.multiselect("Filter Rayon", rayon_lato_opts, default=rayon_lato_opts, key=fkey("lato_rayon_filter", salesman_lato))
 
             master_lato = dmp_master[dmp_master["Salesman"].isin(salesman_lato)] if salesman_lato else dmp_master.iloc[0:0]
             if rayon_lato_opts:
@@ -1305,7 +1589,7 @@ with tab_lato:
                 return [""] * len(row)
 
             styled = tbl_lato_display.style.apply(_highlight_belum, axis=1)
-            st.dataframe(styled, hide_index=True, use_container_width=True, height=460)
+            show_df(styled, hide_index=True, use_container_width=True, height=460)
             download_button(tbl_lato_display, "Download Excel (LATO)", "lato.xlsx", "dl_lato")
 
 # ---------------------------------------------------------------- LTD NPL
@@ -1322,12 +1606,12 @@ with tab_paretto:
         cf1, cf2 = st.columns(2)
         with cf1:
             salesman_pareto = st.multiselect("Filter salesman", salesman_terpilih, default=salesman_terpilih,
-                                              key="pareto_salesman_filter")
+                                              key=fkey("pareto_salesman_filter"))
         with cf2:
             rayon_pareto_opts = sorted(df_filtered.loc[df_filtered[COL["salesman"]].isin(salesman_pareto), "Rayon"]
                                         .dropna().unique().tolist())
             rayon_pareto = st.multiselect("Filter Rayon", rayon_pareto_opts, default=rayon_pareto_opts,
-                                           key="pareto_rayon_filter")
+                                           key=fkey("pareto_rayon_filter", salesman_pareto))
 
         df_pareto_scope = df_filtered[df_filtered[COL["salesman"]].isin(salesman_pareto)] if salesman_pareto else df_filtered.iloc[0:0]
         if rayon_pareto_opts:
@@ -1339,12 +1623,142 @@ with tab_paretto:
         agg_pareto = agg_pareto.rename(columns={COL["outlet"]: "No Outlet", COL["nama_outlet"]: "Nama Outlet",
                                                  COL["salesman"]: "Salesman"})
 
-        st.dataframe(format_cols(agg_pareto[["Rank", "No Outlet", "Nama Outlet", "Salesman", "Rayon", "Omzet"]],
+        show_df(format_cols(agg_pareto[["Rank", "No Outlet", "Nama Outlet", "Salesman", "Rayon", "Omzet"]],
                                  rp_cols=["Omzet"]), hide_index=True, use_container_width=True, height=460)
         fig_pareto = bar_chart(agg_pareto.head(20), "Nama Outlet", "Omzet", "Top 20 dari 40 Toko (visual)")
-        st.plotly_chart(fig_pareto, use_container_width=True)
+        show_chart(fig_pareto)
         download_button(agg_pareto[["Rank", "No Outlet", "Nama Outlet", "Salesman", "Rayon", "Omzet"]],
                          "Download Excel (Paretto)", "paretto.xlsx", "dl_pareto")
+
+# ---------------------------------------------------------------- Stock
+with tab_stock:
+    with st.container(border=True):
+        st.markdown("#### 🗃️ Stock — Stok Tidak Bergerak & Paling Cepat Bergerak")
+        st.caption("Upload di sini saja (tidak lewat menu Option). Upload 2 file stok atau lebih dengan tanggal "
+                   "berbeda — sistem membandingkan stok antar file. **Tidak bergerak** = qty stok identik di SEMUA "
+                   "file dan masih > 0. **Cepat bergerak** = total penurunan stok antar file berurutan (kalau ada "
+                   "restock di antara dua file, pengeluaran bisa terbaca lebih kecil dari aslinya).")
+        stock_files = st.file_uploader("Upload file stok (.xlsx / .xls / .csv / .txt)",
+                                        type=["xlsx", "xls", "csv", "txt"], accept_multiple_files=True,
+                                        key="stock_uploader")
+        stock_header = st.number_input("Baris header di file (0 = baris pertama)", min_value=0, value=0, step=1,
+                                        key="stock_header_row")
+
+    if len(stock_files) < 2:
+        st.info("Upload minimal 2 file stok (tanggal berbeda) untuk mulai membandingkan.")
+    else:
+        stock_loaded = []
+        for sf in stock_files:
+            try:
+                stock_loaded.append((sf.name, stock_read_file(sf.getvalue(), sf.name, int(stock_header))))
+            except Exception as e:  # noqa: BLE001
+                st.error(f"File '{sf.name}' gagal dibaca: {type(e).__name__}. Coba atur 'Baris header'.")
+
+        if len(stock_loaded) < 2:
+            st.warning("Kurang dari 2 file yang berhasil dibaca.")
+        else:
+            cols0 = [str(c) for c in stock_loaded[0][1].columns]
+            with st.container(border=True):
+                st.markdown("**Pengaturan kolom & tanggal**")
+                m1, m2, m3, m4 = st.columns(4)
+                with m1:
+                    c_kode = st.selectbox("Kolom Kode Produk", cols0,
+                                           index=stock_guess_col(cols0, ["pcode", "kode", "sku", "item", "code"]), key="stock_c_kode")
+                with m2:
+                    _g_nama = stock_guess_col(cols0, ["nama", "name", "desc", "produk"], default_first=False)
+                    c_nama = st.selectbox("Kolom Nama Produk", ["(tidak ada)"] + cols0,
+                                           index=0 if _g_nama is None else 1 + _g_nama, key="stock_c_nama")
+                with m3:
+                    c_qty = st.selectbox("Kolom Qty Stok", cols0,
+                                          index=stock_guess_col(cols0, ["qty", "stok", "stock", "saldo", "jumlah"]), key="stock_c_qty")
+                with m4:
+                    c_gud = st.selectbox("Kolom Gudang/Lokasi (opsional)", ["(tidak ada)"] + cols0, index=0, key="stock_c_gud")
+
+                from datetime import date as _date
+                st.markdown("Tanggal tiap file (ditebak dari nama file, bisa dikoreksi):")
+                date_cols = st.columns(min(len(stock_loaded), 4))
+                stock_dates = []
+                for i, (fname, _) in enumerate(stock_loaded):
+                    with date_cols[i % len(date_cols)]:
+                        stock_dates.append(st.date_input(fname, value=stock_guess_date(fname) or _date.today(),
+                                                          key=f"stock_date_{fname}_{i}"))
+
+            keys = ["Kode"] + (["Gudang"] if c_gud != "(tidak ada)" else [])
+            snaps, names_map, problems = [], {}, []
+            for (fname, df_s), dt in zip(stock_loaded, stock_dates):
+                df_s.columns = [str(c) for c in df_s.columns]
+                needed = [c_kode, c_qty] + ([c_gud] if c_gud != "(tidak ada)" else [])
+                if any(c not in df_s.columns for c in needed):
+                    problems.append(fname)
+                    continue
+                t = pd.DataFrame({"Kode": df_s[c_kode].astype(str).str.strip(), "qty": stock_to_num(df_s[c_qty])})
+                if c_gud != "(tidak ada)":
+                    t["Gudang"] = df_s[c_gud].astype(str).str.strip()
+                if c_nama != "(tidak ada)" and c_nama in df_s.columns:
+                    names_map.update(dict(zip(t["Kode"], df_s[c_nama].astype(str).str.strip())))
+                snaps.append((dt, t[t["Kode"].ne("") & t["Kode"].ne("nan")].groupby(keys)["qty"].sum()))
+            if problems:
+                st.warning("Kolom yang dipilih tidak ditemukan di file: " + ", ".join(problems) + " — file ini dilewati.")
+
+            snaps.sort(key=lambda x: x[0])
+            if len(snaps) < 2:
+                st.warning("Butuh minimal 2 file dengan kolom yang sesuai untuk dibandingkan.")
+            elif len({d for d, _ in snaps}) < len(snaps):
+                st.warning("Ada file dengan tanggal yang sama — koreksi tanggalnya supaya urutan perbandingan benar.")
+            else:
+                wide = pd.concat({d.strftime("%d %b %Y"): s for d, s in snaps}, axis=1).fillna(0)
+                date_labels = list(wide.columns)
+                vals = wide.to_numpy(dtype=float)
+                n_days = (snaps[-1][0] - snaps[0][0]).days
+                outflow = np.clip(vals[:, :-1] - vals[:, 1:], 0, None).sum(axis=1)
+
+                res = wide.copy()
+                res["Total Keluar (penurunan stok)"] = outflow
+                res["Rata-rata Keluar/Hari"] = (outflow / n_days) if n_days > 0 else np.nan
+                res = res.reset_index()
+                res.insert(1 if "Gudang" not in res.columns else 2, "Nama Produk", res["Kode"].map(names_map))
+                mask_static = (vals.max(axis=1) == vals.min(axis=1)) & (vals[:, -1] > 0)
+
+                non_moving = res[mask_static].sort_values(date_labels[-1], ascending=False)
+                top_n = st.slider("Jumlah produk teratas (cepat bergerak)", 5, 50, 20, key="stock_topn")
+                fast = res[res["Total Keluar (penurunan stok)"] > 0] \
+                    .sort_values("Total Keluar (penurunan stok)", ascending=False).head(top_n)
+
+                k1s, k2s, k3s, k4s = st.columns(4)
+                with k1s:
+                    kpi_card("🧊", "SKU Tidak Bergerak", f"{len(non_moving):,}")
+                with k2s:
+                    kpi_card("📦", "Total Qty Tidak Bergerak", f"{non_moving[date_labels[-1]].sum():,.0f}")
+                with k3s:
+                    kpi_card("🔍", "SKU Dianalisa", f"{len(res):,}")
+                with k4s:
+                    kpi_card("📅", "Rentang Data", f"{n_days} hari", f"{date_labels[0]} → {date_labels[-1]}")
+
+                st.write("")
+                with st.container(border=True):
+                    st.markdown("#### 🧊 Stok Tidak Bergerak")
+                    if non_moving.empty:
+                        st.success("Tidak ada stok yang diam — semua produk berubah antar file.")
+                    else:
+                        show_df(non_moving, height=380)
+                        download_button(non_moving, "Download Excel (Stok Tidak Bergerak)", "stok_tidak_bergerak.xlsx", "dl_stock_static")
+
+                st.write("")
+                with st.container(border=True):
+                    st.markdown(f"#### 🚀 Top {top_n} Stok Paling Cepat Bergerak")
+                    if fast.empty:
+                        st.info("Tidak ada penurunan stok antar file.")
+                    else:
+                        show_df(fast, height=380)
+                        fast_chart = fast.copy()
+                        fast_chart["Produk"] = fast_chart["Nama Produk"].fillna(fast_chart["Kode"]).astype(str).str.slice(0, 32)
+                        figf = px.bar(fast_chart.iloc[::-1], x="Total Keluar (penurunan stok)", y="Produk", orientation="h",
+                                      color_discrete_sequence=[ACCENT])
+                        figf.update_layout(height=max(320, 22 * len(fast_chart) + 80), margin=dict(t=10, b=10, l=10, r=10),
+                                           paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                                           font=dict(color=CHART_FONT))
+                        show_chart(figf)
+                        download_button(fast, "Download Excel (Stok Cepat Bergerak)", "stok_cepat_bergerak.xlsx", "dl_stock_fast")
 
 # ---------------------------------------------------------------- Performance SS
 with tab_ss:
@@ -1354,7 +1768,7 @@ with tab_ss:
                    "dihandle satu Sales Supervisor. Insentif dihitung pakai skema Sales Supervisor (IBN) M245, "
                    "bukan skema per-salesman.")
         salesman_filter_ss = st.multiselect("Filter salesman", salesman_terpilih, default=salesman_terpilih,
-                                             key="ss_salesman_filter")
+                                             key=fkey("ss_salesman_filter"))
         st.info(f"Tim yang direkap saat ini: **{len(salesman_filter_ss)} salesman**.")
 
     df_ss_scope = df_filtered[df_filtered[COL["salesman"]].isin(salesman_filter_ss)] if salesman_filter_ss else df_filtered.iloc[0:0]
@@ -1385,7 +1799,7 @@ with tab_ss:
         with col_all:
             kpi_card("💰", "Omzet All (Neto)", fmt_rp(pencapaian_ss))
         with col_div:
-            st.dataframe(format_cols(net_divisi_ss[["Divisi", "Omzet"]].sort_values("Omzet", ascending=False),
+            show_df(format_cols(net_divisi_ss[["Divisi", "Omzet"]].sort_values("Omzet", ascending=False),
                                      rp_cols=["Omzet"]), hide_index=True, use_container_width=True, height=180)
 
     st.write("")
@@ -1444,7 +1858,7 @@ with tab_ss:
             "% OA": oa_pct_ss, "Insentif OA": insentif_oa_ss,
             "Total Insentif": total_insentif_ss,
         }])
-        st.dataframe(format_cols(tbl_ss, rp_cols=["Insentif Sales", "Insentif Kategori (4 Divisi)", "Insentif MHS",
+        show_df(format_cols(tbl_ss, rp_cols=["Insentif Sales", "Insentif Kategori (4 Divisi)", "Insentif MHS",
                                                     "Insentif OA", "Total Insentif"],
                                  pct_cols=["% Capaian Sales", "% MHS", "% OA"]),
                      hide_index=True, use_container_width=True)
@@ -1464,7 +1878,7 @@ with tab_readme:
              "IPT/Day": v["ipt_day"], "OA/Month": f'{v["oa_month_pct"]}%', "Target Channel": v["target_channel"]}
             for k, v in PRODUKTIVITY_STANDAR.items()
         ])
-        st.dataframe(df_prod_std, hide_index=True, use_container_width=True)
+        show_df(df_prod_std, hide_index=True, use_container_width=True)
 
     st.write("")
     with st.container(border=True):
@@ -1474,12 +1888,12 @@ with tab_readme:
         df_sku_std = pd.DataFrame(
             [{"Kategori Channel": k, "Target SKU": v} for k, v in TARGET_SKU_BY_CLASS.items()]
         ).sort_values("Target SKU")
-        st.dataframe(df_sku_std, hide_index=True)
+        show_df(df_sku_std, hide_index=True)
 
     st.write("")
     with st.container(border=True):
         st.markdown("#### 📖 Mapping Divisi")
-        st.dataframe(pd.DataFrame([{"Kode Divisi": k, "Nama": v} for k, v in DIVISI_LABEL.items()]), hide_index=True)
+        show_df(pd.DataFrame([{"Kode Divisi": k, "Nama": v} for k, v in DIVISI_LABEL.items()]), hide_index=True)
 
     st.write("")
     with st.container(border=True):
@@ -1498,5 +1912,5 @@ with tab_readme:
                 "Nominal": [fmt_rp(t[1]) for t in tiers["sales"]] + [fmt_rp(t[1]) for t in tiers["category"]] +
                            [fmt_rp(t[1]) for t in tiers["mhs"]] + [fmt_rp(t[1]) for t in tiers["oa"]],
             })
-            st.dataframe(df_show, hide_index=True, use_container_width=True)
+            show_df(df_show, hide_index=True, use_container_width=True)
         st.caption("Tabel ini acuan statis dari spesifikasi awal.")

@@ -174,3 +174,33 @@ butuh `KODEOUTLET`, `RAYON`, `SALESMAN`, `LASTUPDATE`.
 - **Tampilan mobile**: ditambahkan media query untuk layar ≤640px — judul,
   kartu KPI, dan tabel menyesuaikan ukuran font supaya tidak kepotong/kekecilan
   di HP.
+
+## Update 3.0 (tampilan baru, filter global, Stock, kotak Divisi)
+
+- **Tampilan**: tema gelap ala dashboard referensi (panel membulat, aksen pink/lavender,
+  tab berbentuk pill). Kartu Target/Pencapaian/Gap Harian/OA di paling atas TIDAK diubah
+  fungsinya. Judul tetap efek 3D, sekarang berwarna pink, plus watermark
+  "© Created by Adelard" di bawahnya. Teks tahun/periode/salesman terpilih dihapus.
+- **Filter salesman global**: pilihan di Option sekarang benar-benar jadi acuan SEMUA menu
+  (Overview sampai Performance SS). Sebelumnya filter lokal tiap menu "menempel" di pilihan
+  lama karena Streamlit mengingat state widget; sekarang key-nya ikut berubah setiap
+  pilihan di Option berubah, jadi otomatis ter-reset ke salesman yang dipilih.
+- **Grafik tren (Overview)**: garis halus (spline) + area, tombol Daily/Weekly/Monthly,
+  pilihan metrik (Omzet Neto / OA / EC), angka muncul saat kursor diarahkan ke titik.
+  Kalau "Bandingkan dengan tahun lalu" aktif, garis putus-putus tahun lalu ikut tampil.
+  Weekly memakai kolom WEEK di LBP, Monthly memakai kolom Periode.
+- **Capaian by Divisi (By Salesman)**: 4 kotak (Coffee & Cereal di atas, Instant Food &
+  Homecare di bawah), masing-masing berisi Salesman | Target | Capaian | % | Gap Harian.
+  Gap Harian = (Target − Capaian) / HKE; kurang → outline merah dengan tanda minus,
+  sudah tercapai → outline hijau. Nilainya gabungan salesman yang sedang difilter
+  (1 salesman → tampil namanya, >1 → "N Salesman"). Tabel rincian tetap ada di bawahnya.
+- **Menu Stock** (upload di dalam menu itu sendiri, bukan di Option): upload 2+ file stok
+  beda tanggal → tabel stok tidak bergerak + top stok cepat bergerak. Kolom kode/nama/qty/
+  gudang dipilih lewat dropdown (ditebak otomatis), tanggal ditebak dari nama file dan bisa
+  dikoreksi. Definisi: tidak bergerak = qty identik di semua file & > 0; cepat bergerak =
+  total penurunan qty antar file berurutan.
+- **Tabel lebar bisa di-scroll ke kanan**: `use_container_width` sudah deprecated di
+  Streamlit terbaru. Tabel ≥ 8 kolom sekarang memakai lebar sesuai isi (bukan dipaksa muat)
+  sehingga bisa digeser ke kanan; CSS overflow yang sebelumnya ikut mengganggu dihapus.
+- **Bug lama yang ikut diperbaiki**: kalau `secrets.toml` tidak ada sama sekali, gerbang
+  password crash — sekarang otomatis dilewati (sesuai yang tertulis di README).
