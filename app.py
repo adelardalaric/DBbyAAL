@@ -151,10 +151,10 @@ INSENTIF_TIERS_SS = {
     "oa": [(90, 500_000), (95, 1_000_000), (100, 1_500_000)],
 }
 
-ACCENT = "#F3A6E9"      # pink (aksen utama, mengikuti gaya referensi dashboard)
-ACCENT2 = "#A9A6F7"     # lavender (aksen kedua)
-PALETTE = ["#F3A6E9", "#A9A6F7", "#F7B98B", "#7DD3C0", "#8AB4F8", "#F28FAD",
-           "#C4B5FD", "#FDE68A", "#86EFAC", "#93C5FD", "#FCA5A5"]
+ACCENT = "#5EEAD4"      # cyan kehijauan (aksen utama) — futuristik, senada dengan neon hexagon di latar
+ACCENT2 = "#38BDF8"     # biru langit (aksen kedua)
+PALETTE = ["#5EEAD4", "#38BDF8", "#7DD3C0", "#93C5FD", "#FDE68A", "#F7B98B",
+           "#A7F3D0", "#67E8F9", "#86EFAC", "#C4B5FD", "#FCA5A5"]
 CHART_FONT = "#D9D9E3"
 
 
@@ -200,18 +200,28 @@ def inject_css():
     _bg = _bg_data_uri()
     if not _bg:
         st.sidebar.caption("⚠️ Latar hexagon tidak termuat (gambar tertanam & assets/bg_hexagon.jpg tidak ditemukan).")
-    _bg_layer = (f'linear-gradient(rgba(4,6,12,0.06), rgba(4,6,12,0.06)), url("{_bg}") center center / cover no-repeat fixed'
+    _bg_layer = (f'linear-gradient(rgba(4,6,12,0.02), rgba(4,6,12,0.02)), url("{_bg}") center center / cover no-repeat fixed'
                  if _bg else "#0B0B0F")
     st.markdown(f"""
     <style>
+    /* Paksa isi halaman selebar penuh (ujung ke ujung, sejajar baris kartu Target..OA) — beberapa
+       versi Streamlit membatasi block-container ke lebar tengah meski layout="wide" sudah diset. */
+    div.block-container, section[data-testid="stMain"] div.block-container,
+    div[data-testid="stMainBlockContainer"], div[data-testid="stAppViewBlockContainer"] {{
+        max-width:100% !important; width:100% !important; padding-left:2.2rem !important; padding-right:2.2rem !important;
+    }}
+    div[data-testid="stHorizontalBlock"] {{ width:100% !important; }}
+    div[data-testid="column"], div[data-testid="stColumn"] {{ width:100% !important; min-width:0 !important; }}
+
     /* ===== Latar belakang hexagon + panel semi-transparan supaya tetap terbaca ===== */
     .stApp {{ background:{_bg_layer} !important; }}
+    .stApp::before {{ content:""; position:fixed; inset:0; background:radial-gradient(ellipse at 50% -10%, rgba(94,234,212,0.05), transparent 60%); pointer-events:none; z-index:0; }}
     [data-testid="stAppViewContainer"], [data-testid="stMain"], header[data-testid="stHeader"] {{ background:transparent !important; }}
-    section[data-testid="stSidebar"] > div {{ background:rgba(6,8,14,0.66) !important; backdrop-filter:blur(10px); }}
+    section[data-testid="stSidebar"] > div {{ background:rgba(6,8,14,0.48) !important; backdrop-filter:blur(10px); }}
     section[data-testid="stSidebar"] {{ border-right:1px solid rgba(140,160,210,0.16); }}
     div[data-testid="stVerticalBlockBorderWrapper"] {{
         border-radius:18px !important; border:1px solid rgba(140,160,210,0.18) !important;
-        background:rgba(10,12,19,0.56); backdrop-filter:blur(10px);
+        background:rgba(9,12,18,0.34); backdrop-filter:blur(9px);
     }}
 
     /* Menu navigasi (pill, otomatis turun ke baris berikutnya — tidak pernah perlu digeser) */
@@ -219,7 +229,8 @@ def inject_css():
         background:rgba(18,21,31,0.85); border:1px solid rgba(140,160,210,0.22); border-radius:999px; color:#D5D7E4;
     }}
     button[data-testid="stBaseButton-pillsActive"] {{
-        background:rgba(169,166,247,0.24); border:1px solid {ACCENT2}; border-radius:999px; color:#fff; font-weight:700;
+        background:rgba(94,234,212,0.20); border:1px solid {ACCENT}; border-radius:999px; color:#fff; font-weight:700;
+        box-shadow:0 0 10px rgba(94,234,212,0.25);
     }}
 
     .app-title {{
@@ -227,8 +238,8 @@ def inject_css():
         font-size:3.2rem; font-weight:800; margin-bottom:0.1rem; line-height:1.1;
         color: {ACCENT};
         text-shadow:
-            1px 1px 0 #d48ace, 2px 2px 0 #b874b2, 3px 3px 0 #9c5f96,
-            4px 4px 0 #804b7b, 5px 5px 10px rgba(0,0,0,0.6);
+            1px 1px 0 #1f9c8c, 2px 2px 0 #187f74, 3px 3px 0 #12635c,
+            4px 4px 0 #0c4844, 5px 5px 14px rgba(0,0,0,0.65);
     }}
     .app-watermark {{ text-align:center; color:#b9bccb; font-size:0.85rem; letter-spacing:0.6px; margin:2px 0 1.2rem;
                       text-shadow:0 1px 6px rgba(0,0,0,0.85); }}
@@ -237,15 +248,19 @@ def inject_css():
     /* Angka: selalu satu baris ("Rp" tidak boleh terpisah dari angkanya), lebar digit seragam */
     .cur {{ font-size:0.74em; font-weight:600; opacity:0.72; margin-right:1px; }}
     .kpi-value, .dv-value, .sc-cell {{ white-space:nowrap; font-variant-numeric:tabular-nums; }}
+    /* Latar makin transparan -> teks butuh bayangan tipis supaya tetap kebaca di atas pola hexagon */
+    .kpi-value, .kpi-label, .kpi-sub, .dv-value, .dv-label, .dv-sub, .sc-cell, .sc-name, .sc-lab, .sc-tag,
+    .dv-title, .big-nominal, table.tbl td, table.tbl th, div[data-testid="stMarkdownContainer"] p,
+    div[data-testid="stMarkdownContainer"] li, label, .stCaption {{ text-shadow:0 1px 3px rgba(0,0,0,0.55); }}
 
     .kpi-box {{
-        border:1px solid rgba(140,160,210,0.2); border-radius:18px; padding:16px 18px;
-        background-color:rgba(10,12,19,0.80); backdrop-filter:blur(5px); height:100%; min-height:108px;
+        border:1px solid rgba(140,160,210,0.22); border-radius:18px; padding:16px 18px;
+        background-color:rgba(9,12,18,0.42); backdrop-filter:blur(9px); height:100%; min-height:108px;
         container-type:inline-size;
     }}
     .kpi-icon {{
         width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-        font-size:1.05rem; background:rgba(243,166,233,0.16); margin-bottom:4px;
+        font-size:1.05rem; background:rgba(94,234,212,0.14); margin-bottom:4px;
     }}
     .kpi-label {{ font-size:0.8rem; color:#a9aebf; margin-top:2px; }}
     .kpi-value {{ font-size:1.3rem; font-size:clamp(0.95rem, 8.4cqw, 1.5rem); font-weight:700; color:#F3F4F6; line-height:1.25; }}
@@ -257,8 +272,8 @@ def inject_css():
         padding:10px 0 2px 0;
     }}
     /* Kotak Capaian by Divisi (menu By Salesman) */
-    .dv-box {{ border:1px solid rgba(140,160,210,0.2); border-radius:12px; padding:8px 10px; background:rgba(20,23,33,0.86);
-               min-height:66px; min-width:0; overflow:hidden; }}
+    .dv-box {{ border:1px solid rgba(140,160,210,0.22); border-radius:12px; padding:8px 10px; background:rgba(15,18,26,0.46);
+               min-height:66px; min-width:0; overflow:hidden; backdrop-filter:blur(6px); }}
     .dv-label {{ font-size:0.62rem; color:#9ba0b3; text-transform:uppercase; letter-spacing:0.4px; }}
     .dv-value {{ font-size:0.92rem; font-weight:700; color:#f3f4f6; line-height:1.2; margin-top:2px; }}
     .dv-sub {{ font-size:0.62rem; color:#9ba0b3; margin-top:2px; }}
@@ -268,13 +283,13 @@ def inject_css():
     .dv-gap-ok .dv-value {{ color:#86efac; }}
 
     /* Tabel seragam: semua kolom rata tengah, header sticky, bisa scroll ke kanan & bawah */
-    .tbl-wrap {{ overflow:auto; border:1px solid rgba(140,160,210,0.2); border-radius:14px; background:rgba(10,12,19,0.84);
-                 backdrop-filter:blur(5px); margin-bottom:6px; }}
+    .tbl-wrap {{ overflow:auto; border:1px solid rgba(140,160,210,0.22); border-radius:14px; background:rgba(9,12,18,0.46);
+                 backdrop-filter:blur(9px); margin-bottom:6px; }}
     table.tbl {{ border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-size:0.84rem; }}
     table.tbl th, table.tbl td {{ text-align:center; padding:8px 16px; white-space:nowrap; border-bottom:1px solid rgba(255,255,255,0.06); }}
-    table.tbl thead th {{ position:sticky; top:0; z-index:2; background:#181b27; color:#C9CCDA; font-weight:600;
-                          font-size:0.78rem; letter-spacing:0.3px; border-bottom:1px solid rgba(255,255,255,0.12); }}
-    table.tbl tbody tr:nth-child(even) {{ background:rgba(255,255,255,0.035); }}
+    table.tbl thead th {{ position:sticky; top:0; z-index:2; background:rgba(20,24,34,0.82); backdrop-filter:blur(9px); color:#C9CCDA;
+                          font-weight:600; font-size:0.78rem; letter-spacing:0.3px; border-bottom:1px solid rgba(255,255,255,0.14); }}
+    table.tbl tbody tr:nth-child(even) {{ background:rgba(255,255,255,0.045); }}
     table.tbl tbody tr:hover {{ background:rgba(169,166,247,0.12); }}
     table.tbl tr.row-alert td {{ background:#3b1414; color:#fca5a5; }}
     table.tbl td.c-bad {{ color:#f87171; font-weight:700; }}
@@ -288,9 +303,9 @@ def inject_css():
     {_pw_css}
 
     /* Panel Capaian by Divisi & kartu Capaian Salesman */
-    .dv-panel {{ border:1px solid rgba(140,160,210,0.2); border-radius:14px; background:rgba(10,12,19,0.80);
-                 backdrop-filter:blur(5px); padding:10px 12px; margin-bottom:10px; }}
-    .dv-title {{ font-weight:700; font-size:0.95rem; margin-bottom:8px; color:#F0F0F7; }}
+    .dv-panel {{ border:1px solid rgba(140,160,210,0.22); border-radius:14px; background:rgba(9,12,18,0.40);
+                 backdrop-filter:blur(9px); padding:10px 12px; margin-bottom:10px; }}
+    .dv-title {{ font-weight:700; font-size:0.95rem; margin-bottom:8px; color:#E7FBF8; }}
     .dv-grid {{ display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,0.8fr) minmax(0,1.5fr); gap:8px; }}
     .dv-panel, .sc-card {{ container-type:inline-size; }}
     .dv-grid .dv-box {{ padding:7px 8px; min-height:auto; }}
@@ -300,16 +315,16 @@ def inject_css():
     .dv-bar.ok span {{ background:#22c55e; }}
     .sc-wrap {{ padding-right:2px; }}
     .sc-grid {{ display:grid; grid-template-columns:repeat(auto-fill, minmax(460px, 1fr)); gap:10px; }}
-    .sc-card {{ border:1px solid rgba(140,160,210,0.2); border-radius:14px; background:rgba(10,12,19,0.80);
-                backdrop-filter:blur(5px); padding:9px 11px; }}
+    .sc-card {{ border:1px solid rgba(140,160,210,0.22); border-radius:14px; background:rgba(9,12,18,0.40);
+                backdrop-filter:blur(9px); padding:9px 11px; }}
     .sc-head {{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:7px; }}
     .sc-name {{ font-weight:700; font-size:0.88rem; color:#F0F0F7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-    .sc-tag {{ font-size:0.62rem; color:#B9B6F5; border:1px solid #3a3a55; border-radius:999px; padding:1px 8px; white-space:nowrap; }}
+    .sc-tag {{ font-size:0.62rem; color:#7DD3FC; border:1px solid #1f4a52; border-radius:999px; padding:1px 8px; white-space:nowrap; }}
     .sc-card .dv-box {{ min-height:auto; padding:5px 8px; }}
     .sc-row {{ display:grid; grid-template-columns:84px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,0.8fr) minmax(0,1.5fr);
                gap:6px; align-items:stretch; margin-bottom:5px; }}
-    .sc-lab {{ display:flex; align-items:center; font-size:0.66rem; font-weight:700; color:#B9B6F5; letter-spacing:0.3px; white-space:nowrap; }}
-    .sc-cell {{ border:1px solid rgba(140,160,210,0.18); border-radius:8px; background:rgba(20,23,33,0.86); padding:5px 6px;
+    .sc-lab {{ display:flex; align-items:center; font-size:0.66rem; font-weight:700; color:#7DD3FC; letter-spacing:0.3px; white-space:nowrap; }}
+    .sc-cell {{ border:1px solid rgba(140,160,210,0.2); border-radius:8px; background:rgba(15,18,26,0.46); padding:5px 6px;
                 text-align:center; min-width:0; overflow:hidden; font-weight:600; color:#E6E6EE;
                 font-size:0.74rem; font-size:clamp(0.52rem, 1.95cqw, 0.8rem); }}
     .sc-cell.gap-bad {{ border:1.5px solid #ef4444; color:#fca5a5; }}
@@ -318,6 +333,11 @@ def inject_css():
     .sc-row.sc-total .dv-value {{ font-size:0.8rem; font-size:clamp(0.56rem, 2.2cqw, 0.92rem); }}
     .sc-sep {{ height:1px; background:rgba(255,255,255,0.08); margin:6px 0 6px; }}
     .sc-row.sc-divisi {{ margin-bottom:4px; }}
+    .ins-row {{ display:grid; grid-template-columns:92px minmax(0,0.8fr) minmax(0,1.6fr); gap:6px; margin-bottom:5px; }}
+    .ins-total {{ text-align:center; padding:10px 6px 4px; }}
+    .ins-total .sc-cell {{ display:inline-block; font-size:1.15rem; font-size:clamp(0.85rem, 5.5cqw, 1.3rem);
+                            padding:8px 18px; border-width:2px; font-weight:800; }}
+    @media (max-width: 640px) {{ .ins-row {{ grid-template-columns:70px 1fr 1fr; }} }}
 
     /* Kartu KPI Gap Harian: hijau kalau tercapai, merah kalau belum */
     .kpi-box.kpi-bad {{ border:2px solid #ef4444; }}
@@ -327,9 +347,12 @@ def inject_css():
 
     /* Mobile-friendly — layar sempit (HP) */
     @media (max-width: 640px) {{
+        div.block-container, div[data-testid="stMainBlockContainer"], div[data-testid="stAppViewBlockContainer"] {{
+            padding-left:0.6rem !important; padding-right:0.6rem !important;
+        }}
         .stApp {{ background-attachment:scroll !important; }}
         .app-title {{ font-size:1.7rem; letter-spacing:1px;
-            text-shadow: 1px 1px 0 #d48ace, 2px 2px 0 #b874b2, 3px 3px 5px rgba(0,0,0,0.5); }}
+            text-shadow: 1px 1px 0 #1f9c8c, 2px 2px 0 #187f74, 3px 3px 8px rgba(0,0,0,0.6); }}
         .app-watermark {{ font-size:0.7rem; margin-bottom:0.7rem; }}
         .kpi-box {{ padding:10px 12px; min-height:auto; }}
         .kpi-label {{ font-size:0.7rem; }}
@@ -1498,6 +1521,23 @@ def salesman_card_html(name: str, team: str, tgt, cap, div_rows: list | None = N
     return "".join(out)
 
 
+def insentif_card_html(name: str, team: str, total: float, parts: list) -> str:
+    """Kartu ringkas insentif satu salesman: nominal Total besar di atas, lalu tiap kriteria
+    (Sales/Kategori/SKU Sold/Outlet Active) sebagai baris Label | % | Nominal.
+    parts: list of (icon, label, pct_text, rp_text, state) — state 'ok'/'bad' mewarnai kotak nominal."""
+    import html as _html
+    tag = f'<span class="sc-tag">{_html.escape(team)}</span>' if team and team != "Lainnya" else ""
+    out = ['<div class="sc-card">',
+           f'<div class="sc-head"><span class="sc-name">{_html.escape(name)}</span>{tag}</div>',
+           f'<div class="ins-total"><div class="sc-cell{" gap-ok" if total > 0 else ""}">{nice(fmt_rp(total))}</div></div>']
+    for icon, lbl, pct_txt, rp_txt, state in parts:
+        g_cls = {"ok": " gap-ok", "bad": " gap-bad"}.get(state, "")
+        out.append(f'<div class="ins-row"><div class="sc-lab">{icon} {lbl}</div>'
+                   f'<div class="sc-cell">{nice(pct_txt)}</div><div class="sc-cell{g_cls}">{nice(rp_txt)}</div></div>')
+    out.append("</div>")
+    return "".join(out)
+
+
 def render_capaian_png(rows: list, title: str, subtitle: str) -> bytes:
     """Gambar PNG semua kartu salesman untuk dibagikan (WhatsApp dsb).
     rows: dict(name, team, tgt, cap, divisi=[(label, tgt, cap), ...] atau None)."""
@@ -1592,7 +1632,7 @@ mhs_by_sales_all = hitung_mhs_by_salesman(mhs_resume_all, df_filtered, outlet_co
 # =====================================================================
 NAV_ROW1 = ["📊 Overview", "🧑‍💼 By Salesman", "📇 Capaian Salesman", "🗺️ By Wilayah",
             "🏷️ By Subbrand & Divisi", "📦 MHS", "🎯 Insentif"]
-NAV_ROW2 = ["📋 LATO", "🆕 LTD NPL", "📐 Paretto", "🗃️ Stock", "📈 Performance SS", "📖 Read Me"]
+NAV_ROW2 = ["📋 LATO", "🆕 LTD NPL", "📐 Paretto", "🧩 Breakdown Target", "🗃️ Stock", "📈 Performance SS", "📖 Read Me"]
 
 if st.session_state.get("page") not in NAV_ROW1 + NAV_ROW2:
     st.session_state["page"] = NAV_ROW1[0]
@@ -2010,6 +2050,7 @@ if page == "🎯 Insentif":
             insentif_sales = tier_lookup(pct_sales, tiers["sales"])
 
             insentif_kategori = 0
+            n_kategori_ok = 0
             detail_kategori = []
             for kode_div, label_div in DIVISI_LABEL.items():
                 net_div_row = net_by_group(
@@ -2027,6 +2068,7 @@ if page == "🎯 Insentif":
                 pct_cat = (net_val / tgt_val * 100) if tgt_val else np.nan
                 nilai_cat = tier_lookup(pct_cat, tiers["category"])
                 insentif_kategori += nilai_cat
+                n_kategori_ok += 1 if nilai_cat > 0 else 0
                 detail_kategori.append(f"{label_div}: {fmt_pct(pct_cat)} → {fmt_rp(nilai_cat)}")
 
             pct_mhs_row = mhs_by_sales_all.loc[mhs_by_sales_all["Salesman"] == r["Salesman"], "% MHS"]
@@ -2044,6 +2086,7 @@ if page == "🎯 Insentif":
                 "% MHS": pct_mhs_val, "Insentif MHS": insentif_mhs,
                 "% OA": pct_oa_val, "Insentif OA": insentif_oa,
                 "Total Insentif": total_insentif,
+                "_n_kategori_ok": n_kategori_ok,
             })
 
         tbl_insentif = pd.DataFrame(rows)
@@ -2053,15 +2096,33 @@ if page == "🎯 Insentif":
         st.info("Belum ada salesman TO Retail/TO Grosir/KLK yang cocok dengan filter saat ini.")
     else:
         with st.container(border=True):
-            st.markdown("#### 💵 Total Insentif")
-            if len(tbl_insentif) == 1:
-                st.markdown(f'<div class="big-nominal">{fmt_rp(tbl_insentif["Total Insentif"].iloc[0])}</div>',
-                            unsafe_allow_html=True)
-                st.caption(f"Salesman: {tbl_insentif['Salesman'].iloc[0]} ({tbl_insentif['Team'].iloc[0]})")
-            else:
-                st.markdown(f'<div class="big-nominal">{fmt_rp(tbl_insentif["Total Insentif"].sum())}</div>',
-                            unsafe_allow_html=True)
-                st.caption(f"Total gabungan {len(tbl_insentif)} salesman terpilih")
+            st.markdown("#### 💵 Rekap Insentif per Salesman")
+            st.caption("Nominal per kriteria mengikuti tier yang tercapai (lihat skema di menu Read Me). Kotak "
+                       "hijau = kriteria itu menghasilkan insentif (>Rp 0), abu-abu = belum masuk tier manapun.")
+            n1, n2, n3 = st.columns(3)
+            with n1:
+                kpi_card("👥", "Salesman Ditampilkan", f"{len(tbl_insentif)}")
+            with n2:
+                kpi_card("💰", "Total Gabungan", fmt_rp(tbl_insentif["Total Insentif"].sum()))
+            with n3:
+                kpi_card("📊", "Rata-rata per Salesman", fmt_rp(tbl_insentif["Total Insentif"].mean()))
+
+            st.write("")
+            cards_ins = []
+            for _, rr in tbl_insentif.sort_values("Total Insentif", ascending=False).iterrows():
+                parts = [
+                    ("💰", "Sales", fmt_pct(rr["% Capaian Sales"]), fmt_rp(rr["Insentif Sales"]),
+                     "ok" if rr["Insentif Sales"] > 0 else "bad"),
+                    ("🏷️", "4 Divisi", f"{rr['_n_kategori_ok']}/4 masuk", fmt_rp(rr["Insentif Kategori (4 Divisi)"]),
+                     "ok" if rr["Insentif Kategori (4 Divisi)"] > 0 else "bad"),
+                    ("📦", "SKU Sold", fmt_pct(rr["% MHS"]), fmt_rp(rr["Insentif MHS"]),
+                     "ok" if rr["Insentif MHS"] > 0 else "bad"),
+                    ("🏪", "Outlet Active", fmt_pct(rr["% OA"]), fmt_rp(rr["Insentif OA"]),
+                     "ok" if rr["Insentif OA"] > 0 else "bad"),
+                ]
+                cards_ins.append(insentif_card_html(rr["Salesman"], rr["Team"], rr["Total Insentif"], parts))
+            st.markdown('<div class="sc-wrap"><div class="sc-grid">' + "".join(cards_ins) + "</div></div>",
+                        unsafe_allow_html=True)
 
         st.write("")
         with st.container(border=True):
@@ -2126,6 +2187,11 @@ if page == "🆕 LTD NPL":
         st.info("Menu ini akan dikembangkan lebih lanjut setelah definisi rumus LTD NPL dikonfirmasi.")
 
 # ---------------------------------------------------------------- Paretto
+if page == "🧩 Breakdown Target":
+    with st.container(border=True):
+        st.markdown("#### 🧩 Breakdown Target")
+        st.info("Menu ini akan dikembangkan lebih lanjut.")
+
 if page == "📐 Paretto":
     with st.container(border=True):
         st.markdown("#### 📐 Paretto — Ranking 40 Toko Omzet Tertinggi")
