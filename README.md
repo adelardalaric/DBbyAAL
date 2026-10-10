@@ -249,10 +249,12 @@ butuh `KODEOUTLET`, `RAYON`, `SALESMAN`, `LASTUPDATE`.
 
 ## Update 3.3 (latar hexagon, angka rapi, menu dua baris)
 
-- **Latar belakang**: dashboard memakai gambar hexagon (`assets/bg_hexagon.jpg`, versi 2560×1440 dari
-  `hexagon_dark_4k.jpg`, ±148 KB). Panel, kartu, dan tabel dibuat semi-transparan + blur supaya tulisan tetap terbaca.
-  **Folder `assets/` wajib ikut di-push ke GitHub.** Kalau file itu tidak ada, dashboard tidak error — latarnya
-  kembali ke warna gelap polos. Di HP latar tidak dikunci (scroll bersama halaman).
+- **Latar belakang**: gambar hexagon **ditanam langsung di ujung `app.py`** (blok komentar `BG_B64_BEGIN ... BG_B64_END`,
+  jangan diedit) sehingga cukup push `app.py` — tidak lagi bergantung pada folder `assets/`. Cadangan: kalau blok itu
+  tidak ada, dibaca dari `assets/bg_hexagon.jpg`. Kalau dua-duanya tidak ada, muncul peringatan kecil di sidebar
+  dan latar kembali ke warna gelap polos. Lapisan gelap diturunkan ke 6% dan panel dibuat lebih transparan
+  (56% + blur) supaya pola hexagon benar-benar terlihat, sementara kartu angka & tabel tetap cukup pekat untuk dibaca.
+  Di HP latar tidak dikunci (scroll bersama halaman).
 - **Angka target/capaian/% di kartu**: "Rp" dan angkanya sekarang terkunci satu baris (spasi tak-terputus), tanda "%"
   menempel di angkanya, ukuran huruf menyesuaikan lebar kotak, dan "Rp"/"%" dibuat lebih kecil supaya angkanya
   menonjol. Berlaku di kartu Capaian Salesman, kotak Capaian by Divisi, dan kartu KPI paling atas.
@@ -261,3 +263,74 @@ butuh `KODEOUTLET`, `RAYON`, `SALESMAN`, `LASTUPDATE`.
   halaman yang dipilih yang dihitung sehingga dashboard lebih ringan. Konsekuensi: filter lokal di sebuah menu
   kembali ke bawaan kalau kamu pindah menu; file yang diupload di menu Stock tetap tersimpan selama sesi
   (ada tombol "Hapus semua"). Butuh Streamlit ≥ 1.40 (`st.pills`) — sudah ada di requirements.txt.
+
+## Update 3.4 (transparansi, warna cyan, kartu Insentif, Breakdown Target, lebar penuh)
+
+- **Latar makin transparan**: overlay gelap diturunkan dari 6% ke 2%, dan semua panel/kartu/tabel diturunkan
+  opacity-nya (kira-kira 0.8 → 0.4, tabel 0.84 → 0.46) dengan blur ditambah supaya pola hexagon jauh lebih terlihat.
+  Teks (angka, label, isi tabel) diberi bayangan tipis (`text-shadow`) supaya tetap kebaca jelas di atas latar yang
+  makin tembus pandang.
+- **Warna diganti dari pink/ungu ke cyan-biru** (`#5EEAD4` & `#38BDF8`) — judul, ikon KPI, tab aktif, bar progres,
+  tag team, semuanya. Dipilih senada dengan garis neon biru di gambar hexagon (satu tone), tapi tetap kontras
+  karena lebih terang dari latar yang gelap.
+- **Menu Insentif**: sebelum tabel rekap, sekarang ada 3 KPI ringkas (jumlah salesman, total gabungan, rata-rata)
+  lalu kartu per salesman (gaya sama seperti Capaian Salesman) — nominal Total Insentif besar di atas, lalu rincian
+  4 kriteria (Sales, 4 Divisi, SKU Sold, Outlet Active) dengan %, nominal, dan warna hijau/abu-abu (hijau = kriteria
+  itu menghasilkan insentif).
+- **Menu baru "🧩 Breakdown Target"**: placeholder, "akan dikembangkan lebih lanjut" (di baris menu ke-2, sebelum
+  Stock).
+- **Lebar penuh dari ujung ke ujung**: ditambahkan CSS yang memaksa `block-container` selebar 100% (beberapa versi
+  Streamlit membatasi ke lebar tengah meski `layout="wide"` sudah diset) — sekarang semua menu (Overview s.d. Read
+  Me) selebar baris kartu Target–OA di paling atas.
+
+## Update 3.5 (kotak EC, skema Insentif Okt-Des 2026, Stock qty & donut, Breakdown Target)
+
+- **Capaian Salesman — kotak EC baru**: di bawah baris divisi Homecare, tiap kartu sekarang punya kotak "📞 EC"
+  dengan 4 angka: **Target** (EC Standar × HKA — EC Standar dari tabel Standart Produktivity per Team, mis. 20
+  untuk TO Retail, 12 untuk TO Grosir), **s/d Hari Ini** (EC Standar × (HKA−HKE), target pacing sampai hari ini),
+  **Capaian** (EC aktual salesman), dan **Gap Harian** (hijau "✓ Tercapai" / merah kurang-sekian, dihitung dari
+  Target penuh dikurangi Capaian dibagi HKE — basis & gaya sama seperti semua Gap Harian lain di dashboard ini).
+  Ikut masuk ke gambar PNG yang bisa didownload juga.
+- **Skema Insentif diperbarui ke periode Oktober-Desember 2026** (dari 4 PDF scheme resmi TO Retail/TO
+  Grosir/KLK/SS, update 25 September 2026):
+  - **Sales per Kategori** (4 divisi): nominal tier ≥110% sekarang **beda per divisi** (Coffee/Cereal/Instant
+    Food/Homecare), tidak seragam lagi seperti skema lama.
+  - Kriteria ke-4 TO Retail/TO Grosir/KLK berganti nama **"Outlet Active" → "Effective Call"** dengan range %
+    baru (85/90/95, sebelumnya 90/95/100) — dasar hitungnya diganti ke **%EC** (EC aktual ÷ EC Standar×HKA,
+    dikonfirmasi ke user karena namanya berubah jadi Effective Call).
+  - Kriteria ke-4 SS berganti nama **"Outlet Active" → "Outlet Active Quality (Retail Channel)"** dengan range %
+    baru (75/80/85) — dasar hitung **tetap %OA** biasa (vs CB Standar), karena syarat barunya (khusus channel
+    Retail, transaksi min Rp150rb) belum dihitung presisi di versi ini (dikonfirmasi ke user).
+  - **SS juga ikut diupdate** sesuai PDF SS Okt-Des 2026 yang baru (walau draft Update 3.5 sempat menyebut
+    "tidak berlaku pada SS" — dikonfirmasi ke user itu keliru, karena PDF SS-nya sendiri ternyata berubah).
+  - "SKU Sold by Channel" nominal tier teratas turun di semua team.
+  - Menu Insentif, Performance SS & Read Me semuanya mengikuti skema baru ini.
+- **Stock**:
+  - Angka di seluruh menu Stock sekarang **tanpa pemisah ribuan** (mis. `300722`, bukan `300,722`) — khusus menu
+    ini saja, menu lain tidak berubah.
+  - Klasifikasi pergerakan diganti dari **% stok keluar** ke **qty absolut yang keluar** (karton): Tidak Bergerak
+    (0) · **Sangat Lambat** (<10) · **Lambat** (10–49) · **Standar** (50–99) · **Fast Move** (≥100) — threshold
+    bisa diubah di "Pengaturan lanjutan". Contoh: Torabika Creamy Latte 189→188 (keluar 1 karton) = Sangat Lambat.
+  - Bagian "Stok Tidak Bergerak" diperluas jadi **"Stok Tidak Bergerak & Pergerakan Lambat"**, menggabungkan
+    produk Tidak Bergerak + Sangat Lambat + Lambat dalam satu tabel yang bisa di-scroll.
+  - Grafik batang di "Klasifikasi Produk" diganti **diagram donut** (warna per klasifikasi, total produk
+    ditulis di tengah, irisan terbesar sedikit ditarik keluar).
+- **Menu "🧩 Breakdown Target" (full build, sebelumnya placeholder)**:
+  - Upload Excel Target (format sama seperti `TARGET_FILE_BD.xlsx`: kolom KD OUTLET, SKU, QTY, DIVISI, TARGET;
+    sheet "REKAP TARGET") — dijumlah per kode divisi jadi **Target Area per Divisi**.
+  - **Kontribusi %** tiap salesman dihitung dari file LBP yang sudah diupload: pencapaian salesman ÷ pencapaian
+    area, dipecah per divisi (5-Coffee/6-Cereal/8-Instant Food/16-Homecare), dibulatkan 1 angka di belakang
+    koma (mis. 4,3%).
+  - Kolom **Adjustment %** bisa diedit manual per salesman per divisi (default = Kontribusi % hasil LBP) —
+    **Target Teradjust** (= Adjustment % × Target Area Divisi) langsung ikut berubah saat Adjustment % diedit.
+
+### Catatan/asumsi yang dikonfirmasi ke user di Update 3.5
+Beberapa hal di spec tertulis ambigu atau (ternyata) kurang akurat dibanding PDF resminya — sudah ditanyakan
+langsung dan dikonfirmasi sebelum dikerjakan:
+1. Scheme SS tetap diupdate (bukan "tidak berlaku pada SS" seperti di draft Update 3.5 — PDF SS Okt-Des 2026
+   ternyata memang berubah nominalnya).
+2. Kriteria ke-4 TO Retail/Grosir/KLK ("Effective Call") pakai dasar %EC, bukan %OA lama.
+3. Kriteria ke-4 SS ("Outlet Active Quality") tetap pakai %OA biasa (approximate), bukan logic baru
+   "retail channel only, min Rp150rb" yang lebih presisi.
+4. Gap Harian kotak EC pakai Target penuh periode (sama seperti Gap Harian lain di dashboard), dan kotak
+   "Target" & "Target s/d Hari Ini" ditampilkan berdampingan sesuai mekanisme yang dijelaskan di spec.

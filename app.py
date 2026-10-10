@@ -114,41 +114,72 @@ TIPE_OUTLET_LABEL = {
 }
 DIVISI_LABEL = {"5": "Coffee", "6": "Cereal", "8": "Instant Food", "16": "Homecare"}
 
-# Skema insentif M245 (Agustus-September 2026) dari PDF TO Retail, TO Grosir & KLK,
-# dengan kriteria "SKU Sold" (dulu "Must Have SKU by Channel") sudah disesuaikan
-# ke Memorandum Revisi 27 Agustus 2026 — berlaku untuk Salesman (SE, TO Grosir,
-# TO All, TO Retail, KLK & TO ST) & Sales Supervisor, batas persentase turun jadi
-# 50/60/70/80 (dari 60/70/80/90). Nominal Rp-nya TETAP sama seperti skema asli
-# masing-masing karena memo revisi tidak menyebutkan perubahan nominal, cuma
-# perubahan range & klasifikasi channel — tolong dikonfirmasi kalau nominalnya
-# ternyata ikut berubah. Key dict ini mengikuti label Type SF (PRODUKTIVITY_STANDAR).
-# Setiap list: (persentase minimum, nominal Rp). Reward & Punishment TIDAK dipakai.
+# Skema insentif M245 PERIODE OKTOBER-DESEMBER 2026 (update 3.5), dari PDF resmi
+# "Scheme TO Retail/TO Grosir/KLK/SS Okt-Des 2026" (update 25 September 2026).
+# Perubahan vs skema Agustus-September 2026 sebelumnya:
+#  - "Sales Category" (per 4 divisi) sekarang beda nominal PER DIVISI di tier ≥110%
+#    (sebelumnya satu nominal yang sama untuk ke-4 divisi) -> key "category" jadi
+#    dict per kode divisi, bukan satu list lagi.
+#  - Kriteria ke-4 TO Retail/TO Grosir/KLK berganti nama "Outlet Active" -> "Effective
+#    Call" dengan range % baru (85/90/95, sebelumnya 90/95/100) -> key "oa" diganti
+#    "ec" dan dasar hitungnya %EC (EC aktual vs EC Standar×HKA), BUKAN %OA lagi
+#    (dikonfirmasi ke user — sebelumnya field ini salah dihitung dari %OA).
+#  - Kriteria ke-4 SS berganti jadi "Outlet Active Quality (Retail Channel)" dengan
+#    range baru (75/80/85) — dasar hitung TETAP %OA vs CB Standar seperti sebelumnya
+#    (dikonfirmasi ke user — versi "retail channel only, min Rp150rb" belum dihitung
+#    presisi, approximate pakai %OA biasa dulu).
+#  - "SKU Sold by Channel" (dulu "Must Have SKU by Channel") nominal tier teratas
+#    turun di semua team.
+#  - Scheme SS JUGA berubah (walau Update 3.5 poin 2 menyebut "tidak berlaku pada
+#    SS" — dikonfirmasi ke user itu keliru, SS tetap diupdate sesuai PDF SS terbaru).
+# Key dict ini mengikuti label Type SF (PRODUKTIVITY_STANDAR). Setiap list tier:
+# (persentase minimum, nominal Rp). Reward & Punishment TIDAK dipakai.
 INSENTIF_TIERS = {
     "TO RETAIL": {
         "sales": [(90, 500_000), (95, 650_000), (100, 1_000_000), (110, 1_400_000)],
-        "category": [(90, 75_000), (95, 100_000), (100, 150_000), (110, 250_000)],
-        "mhs": [(50, 500_000), (60, 650_000), (70, 1_000_000), (80, 1_400_000)],
-        "oa": [(90, 300_000), (95, 600_000), (100, 1_000_000)],
+        "category": {
+            "5":  [(90, 75_000), (95, 100_000), (100, 150_000), (110, 350_000)],   # Coffee
+            "6":  [(90, 75_000), (95, 100_000), (100, 150_000), (110, 400_000)],   # Cereal
+            "8":  [(90, 75_000), (95, 100_000), (100, 150_000), (110, 300_000)],   # Instant Food
+            "16": [(90, 75_000), (95, 100_000), (100, 150_000), (110, 350_000)],   # Homecare
+        },
+        "mhs": [(50, 500_000), (60, 650_000), (70, 1_000_000), (80, 1_200_000)],
+        "ec": [(85, 300_000), (90, 600_000), (95, 800_000)],
     },
     "TO GROSIR": {
         "sales": [(90, 600_000), (95, 800_000), (100, 1_200_000), (110, 1_800_000)],
-        "category": [(90, 100_000), (95, 150_000), (100, 200_000), (110, 300_000)],
-        "mhs": [(50, 600_000), (60, 800_000), (70, 1_200_000), (80, 1_800_000)],
-        "oa": [(90, 400_000), (95, 800_000), (100, 1_200_000)],
+        "category": {
+            "5":  [(90, 100_000), (95, 150_000), (100, 200_000), (110, 450_000)],
+            "6":  [(90, 100_000), (95, 150_000), (100, 200_000), (110, 550_000)],
+            "8":  [(90, 100_000), (95, 150_000), (100, 200_000), (110, 350_000)],
+            "16": [(90, 100_000), (95, 150_000), (100, 200_000), (110, 450_000)],
+        },
+        "mhs": [(50, 600_000), (60, 800_000), (70, 1_200_000), (80, 1_400_000)],
+        "ec": [(85, 400_000), (90, 800_000), (95, 1_000_000)],
     },
     "KLK": {
         "sales": [(90, 550_000), (95, 750_000), (100, 1_100_000), (110, 1_600_000)],
-        "category": [(90, 100_000), (95, 125_000), (100, 175_000), (110, 300_000)],
-        "mhs": [(50, 550_000), (60, 750_000), (70, 1_100_000), (80, 1_600_000)],
-        "oa": [(90, 300_000), (95, 700_000), (100, 1_000_000)],
+        "category": {
+            "5":  [(90, 100_000), (95, 125_000), (100, 175_000), (110, 350_000)],
+            "6":  [(90, 100_000), (95, 125_000), (100, 175_000), (110, 550_000)],
+            "8":  [(90, 100_000), (95, 125_000), (100, 175_000), (110, 350_000)],
+            "16": [(90, 100_000), (95, 125_000), (100, 175_000), (110, 350_000)],
+        },
+        "mhs": [(50, 550_000), (60, 750_000), (70, 1_100_000), (80, 1_200_000)],
+        "ec": [(90, 300_000), (95, 700_000), (100, 1_000_000)],
     },
 }
 
 INSENTIF_TIERS_SS = {
     "sales": [(90, 800_000), (95, 1_100_000), (100, 1_600_000), (110, 2_350_000)],
-    "category": [(90, 125_000), (95, 170_000), (100, 250_000), (110, 400_000)],
-    "mhs": [(50, 800_000), (60, 1_100_000), (70, 1_600_000), (80, 2_350_000)],
-    "oa": [(90, 500_000), (95, 1_000_000), (100, 1_500_000)],
+    "category": {
+        "5":  [(90, 125_000), (95, 170_000), (100, 250_000), (110, 575_000)],
+        "6":  [(90, 125_000), (95, 170_000), (100, 250_000), (110, 700_000)],
+        "8":  [(90, 125_000), (95, 170_000), (100, 250_000), (110, 550_000)],
+        "16": [(90, 125_000), (95, 170_000), (100, 250_000), (110, 575_000)],
+    },
+    "mhs": [(50, 800_000), (60, 1_100_000), (70, 1_600_000), (80, 1_800_000)],
+    "oa": [(75, 500_000), (80, 1_000_000), (85, 1_250_000)],
 }
 
 ACCENT = "#5EEAD4"      # cyan kehijauan (aksen utama) — futuristik, senada dengan neon hexagon di latar
@@ -408,7 +439,7 @@ def dv_box(label: str, value: str, sub: str = "", css_class: str = ""):
 MAX_ROWS_HTML = 1500
 
 
-def _fmt_cell(v) -> str:
+def _fmt_cell(v, plain_int: bool = False) -> str:
     import html as _html
     from datetime import date as _d, datetime as _dt
     if isinstance(v, (bool, np.bool_)):
@@ -419,19 +450,23 @@ def _fmt_cell(v) -> str:
     except (TypeError, ValueError):
         pass
     if isinstance(v, (int, np.integer)):
-        return f"{int(v):,}"
+        return str(int(v)) if plain_int else f"{int(v):,}"
     if isinstance(v, (float, np.floating)):
-        return f"{int(v):,}" if float(v).is_integer() else f"{v:,.1f}"
+        if float(v).is_integer():
+            return str(int(v)) if plain_int else f"{int(v):,}"
+        return f"{v:.1f}" if plain_int else f"{v:,.1f}"
     if isinstance(v, (pd.Timestamp, _dt, _d)):
         return v.strftime("%d %b %Y")
     return _html.escape(str(v))
 
 
-def show_df(df, height=None, highlight_mask=None, **_ignored):
+def show_df(df, height=None, highlight_mask=None, plain_int: bool = False, **_ignored):
     """Tabel HTML seragam: semua kolom (dan header) rata tengah, header menempel saat scroll,
     zebra, dan bisa di-scroll ke kanan/bawah. Kolom bernama '...Gap...' otomatis berwarna:
     merah untuk '-Rp ...' (belum tercapai), hijau untuk '✓ Tercapai'.
-    highlight_mask: Series boolean (urut sama dengan df) untuk menandai baris merah."""
+    highlight_mask: Series boolean (urut sama dengan df) untuk menandai baris merah.
+    plain_int: True -> angka int/float ditampilkan TANPA pemisah ribuan (dipakai khusus menu Stock,
+    Update 3.5 poin 3 — mis. 300722 bukan 300,722)."""
     base = getattr(df, "data", df)
     total = len(base)
     shown = base.iloc[:MAX_ROWS_HTML]
@@ -443,12 +478,12 @@ def show_df(df, height=None, highlight_mask=None, **_ignored):
     for i, tup in enumerate(shown.itertuples(index=False, name=None)):
         tds = []
         for c, v in zip(cols, tup):
-            txt = _fmt_cell(v)
+            txt = _fmt_cell(v, plain_int)
             cls = ""
             if "Gap" in c:
                 cls = "c-bad" if txt.startswith("-Rp") else ("c-ok" if txt.startswith("✓") else "")
             elif c == "Klasifikasi":
-                cls = {"Sangat Cepat": "c-ok", "Cepat": "c-ok2", "Sedang": "c-warn", "Lambat": "c-slow",
+                cls = {"Fast Move": "c-ok", "Standar": "c-ok2", "Lambat": "c-warn", "Sangat Lambat": "c-slow",
                        "Tidak Bergerak": "c-bad", "Stok Bertambah": "c-info", "Kosong": "c-mute"}.get(txt, "")
             tds.append(f'<td class="{cls}">{txt}</td>' if cls else f"<td>{txt}</td>")
         body.append(f'<tr class="row-alert">{"".join(tds)}</tr>' if hl[i] else f'<tr>{"".join(tds)}</tr>')
@@ -648,6 +683,42 @@ def load_target(file_bytes: bytes):
     return target_all, target_divisi
 
 
+@st.cache_data(show_spinner="Memproses file target Breakdown...")
+def load_target_breakdown(file_bytes: bytes) -> pd.DataFrame:
+    """Baca file Excel Breakdown Target (contoh: TARGET_FILE_BD.xlsx, sheet 'REKAP TARGET'): kolom
+    KD OUTLET, SKU, QTY, DIVISI, TARGET — satu baris per SKU per outlet. Dipakai di menu Breakdown Target
+    (Update 3.5 poin 4) untuk Target Area per divisi (dijumlah dari semua baris sesuai kode divisi)."""
+    from io import BytesIO
+    empty = pd.DataFrame(columns=["Kode Outlet", "SKU", "Qty", "Divisi", "Target", "_divisi_norm"])
+    if file_bytes is None:
+        return empty
+    try:
+        xls = pd.ExcelFile(BytesIO(file_bytes))
+    except Exception:
+        return empty
+    sheet = _find_sheet(xls, ["REKAP TARGET"]) or xls.sheet_names[0]
+    try:
+        raw = pd.read_excel(xls, sheet_name=sheet, dtype=str)
+        raw.columns = [c.strip() for c in raw.columns]
+        outlet_col = _find_col(raw.columns, ["OUTLET"])
+        sku_col = _find_col(raw.columns, ["SKU"]) or _find_col(raw.columns, ["PRODUK"])
+        qty_col = _find_col(raw.columns, ["QTY"])
+        divisi_col = _find_col(raw.columns, ["DIVISI"])
+        target_col = _find_col(raw.columns, ["TARGET"])
+        if divisi_col is None or target_col is None:
+            return empty
+        out = pd.DataFrame()
+        out["Kode Outlet"] = raw[outlet_col].astype(str).str.strip() if outlet_col else ""
+        out["SKU"] = raw[sku_col].astype(str).str.strip() if sku_col else ""
+        out["Qty"] = pd.to_numeric(raw[qty_col], errors="coerce").fillna(0) if qty_col else 0
+        out["Divisi"] = raw[divisi_col].astype(str).str.strip()
+        out["Target"] = pd.to_numeric(raw[target_col], errors="coerce").fillna(0)
+        out["_divisi_norm"] = out["Divisi"].apply(lambda x: (re.sub(r"\.0$", "", str(x).strip()).lstrip("0") or "0"))
+        return out
+    except Exception:
+        return empty
+
+
 @st.cache_data(show_spinner="Memproses file DMP...")
 def load_dmp(file_bytes: bytes) -> pd.DataFrame:
     from io import BytesIO
@@ -725,6 +796,29 @@ def pie_chart(df_agg: pd.DataFrame, name_col: str, val_col: str, title: str = ""
     fig.update_layout(height=420, margin=dict(t=50, b=10, l=10, r=10),
                        legend=dict(orientation="h", yanchor="bottom", y=-0.25),
                        font=dict(size=13))
+    return fig
+
+
+def stock_class_donut(summ: pd.DataFrame) -> go.Figure:
+    """Donut estetik untuk Klasifikasi Produk Stock (Update 3.5 poin 3 — ganti dari diagram batang).
+    summ: kolom 'Klasifikasi' & 'Produk'. Pakai warna STOCK_CLASS_COLOR, irisan terbesar sedikit 'ditarik'
+    keluar, dan total produk ditulis di tengah donut."""
+    d = summ[summ["Produk"] > 0].copy()
+    total_produk = int(d["Produk"].sum())
+    pulls = [0.05 if v == d["Produk"].max() else 0 for v in d["Produk"]]
+    fig = go.Figure(go.Pie(
+        labels=d["Klasifikasi"], values=d["Produk"], hole=0.62, pull=pulls, sort=False,
+        marker=dict(colors=[STOCK_CLASS_COLOR.get(k, "#8b8b98") for k in d["Klasifikasi"]],
+                    line=dict(color="#0B0B0F", width=3)),
+        textposition="outside", textinfo="label+percent", textfont=dict(size=12, color=CHART_FONT),
+        hovertemplate="%{label}: %{value} produk (%{percent})<extra></extra>",
+    ))
+    fig.update_layout(
+        height=360, margin=dict(t=20, b=20, l=20, r=20), showlegend=False,
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color=CHART_FONT),
+        annotations=[dict(text=f"<b>{total_produk}</b><br><span style='font-size:11px'>produk</span>",
+                           x=0.5, y=0.5, showarrow=False, font=dict(size=22, color="#F0F0F7"))],
+    )
     return fig
 
 
@@ -1149,8 +1243,12 @@ st.divider()
 STOCK_HEADER_KW = ("kode", "code", "sku", "pcode", "item", "barang", "nama", "name", "produk", "product", "desc",
                    "qty", "stok", "stock", "saldo", "jumlah", "ctn", "karton", "carton", "pcs", "gudang", "lokasi",
                    "warehouse", "satuan", "unit", "bagian")
-STOCK_CLASSES = ["Sangat Cepat", "Cepat", "Sedang", "Lambat", "Stok Bertambah", "Tidak Bergerak", "Kosong"]
-STOCK_CLASS_COLOR = {"Sangat Cepat": "#22c55e", "Cepat": "#a3e635", "Sedang": "#fbbf24", "Lambat": "#fb923c",
+# Klasifikasi pergerakan stok (Update 3.5 poin 3): berdasarkan QTY ABSOLUT yang keluar (karton), BUKAN
+# % lagi. Fast Move >=100, Standar 50-99, Lambat 10-49, Sangat Lambat 1-9, Tidak Bergerak = qty sama &
+# > 0 (tidak ada yang keluar sama sekali), Stok Bertambah = cuma ada tambahan belum ada yang keluar,
+# Kosong = selalu 0.
+STOCK_CLASSES = ["Fast Move", "Standar", "Lambat", "Sangat Lambat", "Stok Bertambah", "Tidak Bergerak", "Kosong"]
+STOCK_CLASS_COLOR = {"Fast Move": "#22c55e", "Standar": "#a3e635", "Lambat": "#fbbf24", "Sangat Lambat": "#fb923c",
                      "Stok Bertambah": "#7dd3fc", "Tidak Bergerak": "#ef4444", "Kosong": "#6b7280"}
 
 
@@ -1303,11 +1401,12 @@ def stock_detect_columns(df: pd.DataFrame) -> dict:
     return {"kode": kode, "nama": nama, "qty": qty, "lokasi": lokasi}
 
 
-def stock_compute(snaps: list, names_map: dict, has_loc: bool, thr=(70, 40, 15)):
+def stock_compute(snaps: list, names_map: dict, has_loc: bool, thr=(100, 50, 10)):
     """snaps: [(date, Series qty per (Lokasi,)Kode)] urut tanggal. Return (res, date_cols, n_days).
-    Klasifikasi (dari % stok yang keluar terhadap stok tertinggi sebelum snapshot terakhir):
-    Tidak Bergerak = qty sama di semua file & > 0 | Stok Bertambah = hanya ada tambahan, belum keluar |
-    Sangat Cepat / Cepat / Sedang / Lambat = % keluar >= thr[0] / thr[1] / thr[2] / sisanya | Kosong = selalu 0."""
+    Klasifikasi (Update 3.5 poin 3 — berdasar QTY ABSOLUT keluar, bukan %):
+    Kosong = selalu 0 | Tidak Bergerak = qty sama di semua file & > 0 (tidak ada yang keluar) |
+    Stok Bertambah = cuma ada tambahan, belum ada yang keluar | lalu dari qty total yang keluar:
+    Fast Move >= thr[0](100) | Standar >= thr[1](50) | Lambat >= thr[2](10) | Sangat Lambat = sisanya (1-9)."""
     date_cols = [d.strftime("%d %b %Y") for d, _ in snaps]
     wide = pd.concat([s for _, s in snaps], axis=1).fillna(0)
     wide.columns = date_cols
@@ -1322,8 +1421,8 @@ def stock_compute(snaps: list, names_map: dict, has_loc: bool, thr=(70, 40, 15))
     static = (vals.max(axis=1) == vals.min(axis=1)) & (vals[:, -1] > 0)
     kosong = vals.max(axis=1) == 0
     klas = np.select(
-        [kosong, static, keluar == 0, pct >= thr[0], pct >= thr[1], pct >= thr[2]],
-        ["Kosong", "Tidak Bergerak", "Stok Bertambah", "Sangat Cepat", "Cepat", "Sedang"], default="Lambat")
+        [kosong, static, keluar == 0, keluar >= thr[0], keluar >= thr[1], keluar >= thr[2]],
+        ["Kosong", "Tidak Bergerak", "Stok Bertambah", "Fast Move", "Standar", "Lambat"], default="Sangat Lambat")
     res = wide.reset_index()
     res.insert(len(wide.index.names), "Nama Produk", res["Kode"].map(names_map))
     res["Keluar"] = keluar
@@ -1457,6 +1556,17 @@ def gap_state(tgt, cap):
     return "dv-gap-bad", ("-" if pd.isna(gap_h) else "-" + fmt_rp(gap_h)), f"kurang {fmt_rp(tgt - cap)}"
 
 
+def gap_state_count(tgt, cap):
+    """Sama seperti gap_state() tapi untuk nilai HITUNGAN polos (bukan Rupiah) — dipakai kotak EC
+    di Capaian Salesman (poin 1 Update 3.5), supaya tidak muncul 'Rp' di depan angka EC."""
+    if pd.isna(tgt) or not tgt:
+        return "", "-", "target belum ada"
+    if cap >= tgt:
+        return "dv-gap-ok", "✓ Tercapai", f"lebih {int(round(cap - tgt))}"
+    gap_h = (tgt - cap) / hke if hke else np.nan
+    return "dv-gap-bad", ("-" if pd.isna(gap_h) else "-" + str(int(round(gap_h)))), f"kurang {int(round(tgt - cap))}"
+
+
 def box_html(label: str, value: str, sub: str = "", css: str = "") -> str:
     return (f'<div class="dv-box {css}"><div class="dv-label">{label}</div>'
             f'<div class="dv-value">{nice(value)}</div>' + (f'<div class="dv-sub">{sub}</div>' if sub else "") + "</div>")
@@ -1496,9 +1606,11 @@ def _pil_font(size: int, bold: bool = False):
         return ImageFont.load_default()
 
 
-def salesman_card_html(name: str, team: str, tgt, cap, div_rows: list | None = None) -> str:
-    """Kartu ringkas satu salesman: baris TOTAL (kotak berlabel) + optional 4 baris divisi di bawahnya.
-    div_rows: list of (icon, label, target, capaian)."""
+def salesman_card_html(name: str, team: str, tgt, cap, div_rows: list | None = None, ec_row: tuple | None = None) -> str:
+    """Kartu ringkas satu salesman: baris TOTAL (kotak berlabel) + optional 4 baris divisi di bawahnya
+    + optional kotak EC (poin 1 Update 3.5) di baris paling bawah.
+    div_rows: list of (icon, label, target, capaian).
+    ec_row: (ec_tgt_full, ec_tgt_sd, ec_cap) — Target penuh periode, Target s/d hari ini, Capaian EC aktual."""
     import html as _html
     pct = (cap / tgt * 100) if pd.notna(tgt) and tgt else np.nan
     css, gtxt, _ = gap_state(tgt, cap)
@@ -1517,6 +1629,15 @@ def salesman_card_html(name: str, team: str, tgt, cap, div_rows: list | None = N
             out.append(f'<div class="sc-row sc-divisi"><div class="sc-lab">{icon} {lbl}</div>'
                        f'<div class="sc-cell">{nice(fmt_rp(d_tgt))}</div><div class="sc-cell">{nice(fmt_rp(d_cap))}</div>'
                        f'<div class="sc-cell">{nice(fmt_pct(d_pct))}</div><div class="sc-cell{g_cls}">{nice(d_gtxt)}</div></div>')
+    if ec_row:
+        ec_tgt_full, ec_tgt_sd, ec_cap = ec_row
+        ec_css, ec_gtxt, _ = gap_state_count(ec_tgt_full, ec_cap)
+        out.append('<div class="sc-sep"></div>')
+        out.append('<div class="sc-row sc-total"><div class="sc-lab">📞 EC</div>'
+                    + box_html("Target", f"{int(ec_tgt_full) if pd.notna(ec_tgt_full) else 0}")
+                    + box_html("s/d Hari Ini", f"{int(ec_tgt_sd) if pd.notna(ec_tgt_sd) else 0}")
+                    + box_html("Capaian", f"{int(ec_cap) if pd.notna(ec_cap) else 0}")
+                    + box_html("Gap Harian", ec_gtxt, "", ec_css) + "</div>")
     out.append("</div>")
     return "".join(out)
 
@@ -1554,7 +1675,10 @@ def render_capaian_png(rows: list, title: str, subtitle: str) -> bytes:
 
     def card_height(r):
         n_div = len(r["divisi"]) if r.get("divisi") else 0
-        return 40 + 56 + 13 + (10 + n_div * 30 if n_div else 0) + 12
+        extra = (10 + n_div * 30) if n_div else 0
+        if r.get("ec"):
+            extra += 10 + 56
+        return 40 + 56 + 13 + extra + 12
 
     H = PAD + 78 + sum(card_height(r) + GAP for r in rows) + 44
     img = Image.new("RGB", (W, max(H, 200)), "#0B0B0F")
@@ -1614,6 +1738,42 @@ def render_capaian_png(rows: list, title: str, subtitle: str) -> bytes:
                     d.rounded_rectangle([x, ry, x + w, ry + 26], radius=7, fill="#14141a", outline=ocol, width=ow)
                     d.text((x + 8, ry + 6), txt, font=f_dval, fill=tcol)
                 ry += 30
+            if r.get("ec"):
+                ec_tgt_full, ec_tgt_sd, ec_cap = r["ec"]
+                ec_css, ec_gtxt, _ = gap_state_count(ec_tgt_full, ec_cap)
+                ec_gtxt = ec_gtxt.replace("✓ ", "")
+                ey = ry + 6
+                d.text((inner_x0, ey + 20), "📞 EC", font=f_dlab, fill="#B9B6F5")
+                ec_vals = [("TARGET", f"{int(ec_tgt_full) if pd.notna(ec_tgt_full) else 0}", "#F3F4F6", "#2a2a33", 1),
+                           ("S/D HARI INI", f"{int(ec_tgt_sd) if pd.notna(ec_tgt_sd) else 0}", "#F3F4F6", "#2a2a33", 1),
+                           ("CAPAIAN", f"{int(ec_cap) if pd.notna(ec_cap) else 0}", "#F3F4F6", "#2a2a33", 1),
+                           ("GAP HARIAN", ec_gtxt,
+                            "#86EFAC" if ec_css == "dv-gap-ok" else ("#FCA5A5" if ec_css == "dv-gap-bad" else "#F3F4F6"),
+                            "#22c55e" if ec_css == "dv-gap-ok" else ("#ef4444" if ec_css == "dv-gap-bad" else "#2a2a33"),
+                            2 if ec_css else 1)]
+                for i, (lab, val, vcol, ocol, ow) in enumerate(ec_vals):
+                    x, w = col_x(i)
+                    d.rounded_rectangle([x, ey, x + w, ey + 56], radius=10, fill="#14141a", outline=ocol, width=ow)
+                    d.text((x + 9, ey + 7), lab, font=f_lab, fill="#8b8b98")
+                    d.text((x + 9, ey + 27), val, font=f_val, fill=vcol)
+        elif r.get("ec"):
+            ec_tgt_full, ec_tgt_sd, ec_cap = r["ec"]
+            ec_css, ec_gtxt, _ = gap_state_count(ec_tgt_full, ec_cap)
+            ec_gtxt = ec_gtxt.replace("✓ ", "")
+            ey = bar_y + 4 + 10
+            d.text((inner_x0, ey + 20), "📞 EC", font=f_dlab, fill="#B9B6F5")
+            ec_vals = [("TARGET", f"{int(ec_tgt_full) if pd.notna(ec_tgt_full) else 0}", "#F3F4F6", "#2a2a33", 1),
+                       ("S/D HARI INI", f"{int(ec_tgt_sd) if pd.notna(ec_tgt_sd) else 0}", "#F3F4F6", "#2a2a33", 1),
+                       ("CAPAIAN", f"{int(ec_cap) if pd.notna(ec_cap) else 0}", "#F3F4F6", "#2a2a33", 1),
+                       ("GAP HARIAN", ec_gtxt,
+                        "#86EFAC" if ec_css == "dv-gap-ok" else ("#FCA5A5" if ec_css == "dv-gap-bad" else "#F3F4F6"),
+                        "#22c55e" if ec_css == "dv-gap-ok" else ("#ef4444" if ec_css == "dv-gap-bad" else "#2a2a33"),
+                        2 if ec_css else 1)]
+            for i, (lab, val, vcol, ocol, ow) in enumerate(ec_vals):
+                x, w = col_x(i)
+                d.rounded_rectangle([x, ey, x + w, ey + 56], radius=10, fill="#14141a", outline=ocol, width=ow)
+                d.text((x + 9, ey + 7), lab, font=f_lab, fill="#8b8b98")
+                d.text((x + 9, ey + 27), val, font=f_val, fill=vcol)
         y += ch + GAP
     foot = "© Created by Adelard"
     d.text(((W - d.textlength(foot, font=f_sub)) / 2, y + 6), foot, font=f_sub, fill="#8b8b98")
@@ -1828,9 +1988,20 @@ if page == "📇 Capaian Salesman":
         if show_div_card:
             got = div_by_sales.get(r["Salesman"], {})
             div_rows = [(DIV_ICON[lbl], lbl, *got.get(lbl, (np.nan, 0))) for lbl in DIVISI_LABEL.values()]
-        cards_html.append(salesman_card_html(r["Salesman"], r["Team"], tgt_c, r["Net Sales"], div_rows))
+        # Kotak EC (poin 1 Update 3.5): EC Standar dari PRODUKTIVITY_STANDAR (20 utk TO Retail, 12 utk TO
+        # Grosir, dst, sesuai Team salesman). Target = EC Standar x HKA (hari kerja aktif, periode penuh).
+        # Target s/d hari ini = EC Standar x (HKA-HKE) (hari yang sudah terlewati). Gap Harian memakai basis
+        # Target penuh (sama seperti semua Gap Harian lain di dashboard ini) — Target s/d hari ini ditampilkan
+        # sebagai info pacing saja, tidak dipakai di rumus Gap Harian.
+        ec_standar_card = PRODUKTIVITY_STANDAR.get(r["Team"], {}).get("ec_day", 0)
+        ec_tgt_full_card = ec_standar_card * hka
+        ec_tgt_sd_card = ec_standar_card * max(hka - hke, 0)
+        ec_cap_card = r["EC"] if pd.notna(r["EC"]) else 0
+        ec_row = (ec_tgt_full_card, ec_tgt_sd_card, ec_cap_card)
+        cards_html.append(salesman_card_html(r["Salesman"], r["Team"], tgt_c, r["Net Sales"], div_rows, ec_row))
         rows_png.append({"name": r["Salesman"], "team": r["Team"], "tgt": tgt_c, "cap": r["Net Sales"],
-                         "divisi": [(lbl, t_, c_) for _ic, lbl, t_, c_ in div_rows] if div_rows else None})
+                         "divisi": [(lbl, t_, c_) for _ic, lbl, t_, c_ in div_rows] if div_rows else None,
+                         "ec": ec_row})
 
     if not cards_html:
         st.info("Pilih minimal 1 salesman.")
@@ -2029,10 +2200,11 @@ if page == "📦 MHS":
 # ---------------------------------------------------------------- Insentif
 if page == "🎯 Insentif":
     with st.container(border=True):
-        st.markdown("#### 🎯 Insentif — Skema TO Retail, TO Grosir & KLK M245 (Agustus-September 2026)")
+        st.markdown("#### 🎯 Insentif — Skema TO Retail, TO Grosir & KLK M245 (Oktober-Desember 2026)")
         st.caption("Bagian Reward & Punishment (Tagihan, Visit in Radius) TIDAK dihitung sesuai instruksi. "
                    "Salesman di luar team ini (SE, TO All, TO ST, KVS ST, Motoris, dst) belum punya skema, "
-                   "jadi tidak muncul di sini.")
+                   "jadi tidak muncul di sini. Kriteria ke-4 'Effective Call' dihitung dari %EC (EC aktual vs "
+                   "EC Standar×HKA), sesuai nama & rumus baru di skema Okt-Des 2026.")
         salesman_insentif_opts = ringkasan_sales.loc[ringkasan_sales["Team"].isin(list(INSENTIF_TIERS.keys())), "Salesman"].tolist()
         salesman_insentif_opts = [s for s in salesman_insentif_opts if s in salesman_terpilih]
         salesman_pilih_insentif = st.multiselect("Filter salesman", salesman_insentif_opts,
@@ -2066,7 +2238,7 @@ if page == "🎯 Insentif":
                         t = t[t[TARGET_DIVISI_COL["periode"]].isna() | t[TARGET_DIVISI_COL["periode"]].isin(periode_sel)]
                     tgt_val = t[TARGET_DIVISI_COL["target"]].sum()
                 pct_cat = (net_val / tgt_val * 100) if tgt_val else np.nan
-                nilai_cat = tier_lookup(pct_cat, tiers["category"])
+                nilai_cat = tier_lookup(pct_cat, tiers["category"][kode_div])
                 insentif_kategori += nilai_cat
                 n_kategori_ok += 1 if nilai_cat > 0 else 0
                 detail_kategori.append(f"{label_div}: {fmt_pct(pct_cat)} → {fmt_rp(nilai_cat)}")
@@ -2075,16 +2247,18 @@ if page == "🎯 Insentif":
             pct_mhs_val = pct_mhs_row.iloc[0] if not pct_mhs_row.empty else np.nan
             insentif_mhs = tier_lookup(pct_mhs_val, tiers["mhs"])
 
-            pct_oa_val = r["% OA"]
-            insentif_oa = tier_lookup(pct_oa_val, tiers["oa"])
+            ec_standar_val = PRODUKTIVITY_STANDAR.get(team, {}).get("ec_day", 0)
+            ec_target_full_val = ec_standar_val * hka
+            pct_ec_val = (r["EC"] / ec_target_full_val * 100) if ec_target_full_val else np.nan
+            insentif_ec = tier_lookup(pct_ec_val, tiers["ec"])
 
-            total_insentif = insentif_sales + insentif_kategori + insentif_mhs + insentif_oa
+            total_insentif = insentif_sales + insentif_kategori + insentif_mhs + insentif_ec
             rows.append({
                 "Kode Sales": kode_sales, "Salesman": r["Salesman"], "Team": team,
                 "% Capaian Sales": pct_sales, "Insentif Sales": insentif_sales,
                 "Insentif Kategori (4 Divisi)": insentif_kategori, "Detail Kategori": " | ".join(detail_kategori),
                 "% MHS": pct_mhs_val, "Insentif MHS": insentif_mhs,
-                "% OA": pct_oa_val, "Insentif OA": insentif_oa,
+                "% EC": pct_ec_val, "Insentif EC": insentif_ec,
                 "Total Insentif": total_insentif,
                 "_n_kategori_ok": n_kategori_ok,
             })
@@ -2117,8 +2291,8 @@ if page == "🎯 Insentif":
                      "ok" if rr["Insentif Kategori (4 Divisi)"] > 0 else "bad"),
                     ("📦", "SKU Sold", fmt_pct(rr["% MHS"]), fmt_rp(rr["Insentif MHS"]),
                      "ok" if rr["Insentif MHS"] > 0 else "bad"),
-                    ("🏪", "Outlet Active", fmt_pct(rr["% OA"]), fmt_rp(rr["Insentif OA"]),
-                     "ok" if rr["Insentif OA"] > 0 else "bad"),
+                    ("📞", "Effective Call", fmt_pct(rr["% EC"]), fmt_rp(rr["Insentif EC"]),
+                     "ok" if rr["Insentif EC"] > 0 else "bad"),
                 ]
                 cards_ins.append(insentif_card_html(rr["Salesman"], rr["Team"], rr["Total Insentif"], parts))
             st.markdown('<div class="sc-wrap"><div class="sc-grid">' + "".join(cards_ins) + "</div></div>",
@@ -2128,10 +2302,10 @@ if page == "🎯 Insentif":
         with st.container(border=True):
             st.markdown("#### 📋 Summary Ketentuan yang Sudah Masuk")
             show_ins = format_cols(tbl_insentif, rp_cols=["Insentif Sales", "Insentif Kategori (4 Divisi)",
-                                                            "Insentif MHS", "Insentif OA", "Total Insentif"],
-                                    pct_cols=["% Capaian Sales", "% MHS", "% OA"])
+                                                            "Insentif MHS", "Insentif EC", "Total Insentif"],
+                                    pct_cols=["% Capaian Sales", "% MHS", "% EC"])
             show_df(show_ins[["Kode Sales", "Salesman", "Team", "% Capaian Sales", "Insentif Sales",
-                                    "Insentif Kategori (4 Divisi)", "% MHS", "Insentif MHS", "% OA", "Insentif OA",
+                                    "Insentif Kategori (4 Divisi)", "% MHS", "Insentif MHS", "% EC", "Insentif EC",
                                     "Total Insentif"]], hide_index=True, use_container_width=True, height=340)
             with st.expander("Lihat rincian per Divisi (Coffee/Cereal/Instant Food/Homecare)"):
                 show_df(tbl_insentif[["Salesman", "Detail Kategori"]], hide_index=True, use_container_width=True)
@@ -2189,8 +2363,97 @@ if page == "🆕 LTD NPL":
 # ---------------------------------------------------------------- Paretto
 if page == "🧩 Breakdown Target":
     with st.container(border=True):
-        st.markdown("#### 🧩 Breakdown Target")
-        st.info("Menu ini akan dikembangkan lebih lanjut.")
+        st.markdown("#### 🧩 Breakdown Target — Kontribusi Sales & Adjustment Target per Divisi")
+        st.caption("Upload Excel Target (format sama seperti contoh TARGET_FILE_BD.xlsx — kolom KD OUTLET, SKU, "
+                   "QTY, DIVISI, TARGET) untuk dapat Target Area per divisi. Kontribusi tiap salesman dihitung "
+                   "dari file LBP yang sudah diupload (⚙️ Option): pencapaian salesman ÷ pencapaian area, "
+                   "per divisi (5-Coffee/6-Cereal/8-Instant Food/16-Homecare).")
+        bd_up = st.file_uploader("📎 Upload Excel Target Breakdown (.xlsx)", type=["xlsx"], key="bd_uploader")
+        if bd_up is not None:
+            st.session_state["bd_target_bytes"] = bd_up.getvalue()
+            st.session_state["bd_target_name"] = bd_up.name
+        bd_bytes = st.session_state.get("bd_target_bytes")
+        if bd_bytes:
+            bc1, bc2 = st.columns([5, 1])
+            with bc1:
+                st.caption(f"File dipakai: **{st.session_state.get('bd_target_name', '-')}**")
+            with bc2:
+                if st.button("🗑️ Hapus", key="bd_clear"):
+                    st.session_state.pop("bd_target_bytes", None)
+                    st.session_state.pop("bd_target_name", None)
+                    st.rerun()
+
+    if not bd_bytes:
+        st.info("Upload file Excel Target Breakdown dulu untuk mulai melihat menu ini.")
+    else:
+        df_bd = load_target_breakdown(bd_bytes)
+        if df_bd.empty:
+            st.error("File tidak bisa dibaca, atau kolom DIVISI & TARGET tidak ditemukan. Pastikan formatnya "
+                     "sama seperti contoh TARGET_FILE_BD.xlsx (sheet 'REKAP TARGET').")
+        else:
+            area_target_divisi = df_bd.groupby("_divisi_norm")["Target"].sum()
+
+            # Pencapaian (Net Sales) per salesman x divisi, dari LBP yang sudah difilter (Periode/Week/Salesman
+            # di sidebar) — "pencapaian area" per divisi = jumlah Net Sales SEMUA salesman pada scope ini.
+            kode_by_label = {v: k for k, v in DIVISI_LABEL.items()}
+            div_long_bd = hitung_divisi_long(df_filtered).copy()
+            div_long_bd["_divisi_norm"] = div_long_bd["Divisi"].map(kode_by_label)
+            area_net_divisi = div_long_bd.groupby("_divisi_norm")["Net Sales"].sum()
+
+            st.write("")
+            with st.container(border=True):
+                st.markdown("#### 📊 Target Area per Divisi (dari file Breakdown Target)")
+                area_show = pd.DataFrame([
+                    {"Divisi": label_div, "Target Area (dari Excel)": area_target_divisi.get(kode_div, 0),
+                     "Pencapaian Area (dari LBP)": area_net_divisi.get(kode_div, 0)}
+                    for kode_div, label_div in DIVISI_LABEL.items()
+                ])
+                show_df(format_cols(area_show, rp_cols=["Target Area (dari Excel)", "Pencapaian Area (dari LBP)"]),
+                        hide_index=True, use_container_width=True)
+
+            st.write("")
+            salesman_bd = st.multiselect("Filter salesman", salesman_terpilih, default=salesman_terpilih,
+                                          key=fkey("bd_salesman_filter"))
+
+            for kode_div, label_div in DIVISI_LABEL.items():
+                with st.container(border=True):
+                    st.markdown(f"#### {DIV_ICON[label_div]} {label_div}")
+                    area_net = area_net_divisi.get(kode_div, 0)
+                    area_tgt = area_target_divisi.get(kode_div, 0)
+                    sub = div_long_bd[(div_long_bd["_divisi_norm"] == kode_div) &
+                                       (div_long_bd["Salesman"].isin(salesman_bd))].copy()
+                    sub["Kontribusi %"] = ((sub["Net Sales"] / area_net * 100) if area_net else 0).round(1)
+                    sub = sub[["Salesman", "Net Sales", "Kontribusi %"]].sort_values("Net Sales", ascending=False) \
+                        .reset_index(drop=True)
+
+                    if sub.empty:
+                        st.info("Tidak ada salesman pada filter saat ini.")
+                        continue
+
+                    editor_key = fkey(f"bd_editor_{kode_div}")
+                    edit_base = sub[["Salesman", "Kontribusi %"]].copy()
+                    edit_base["Adjustment %"] = edit_base["Kontribusi %"]
+                    st.caption("Kolom **Adjustment %** bisa diubah manual (default = Kontribusi % hasil hitungan "
+                               "dari LBP). Target Teradjust di bawah ikut berubah otomatis sesuai angka yang diisi.")
+                    edited = st.data_editor(
+                        edit_base, key=editor_key, hide_index=True, width="stretch",
+                        column_config={
+                            "Salesman": st.column_config.TextColumn("Salesman", disabled=True),
+                            "Kontribusi %": st.column_config.NumberColumn("Kontribusi % (LBP)", format="%.1f%%", disabled=True),
+                            "Adjustment %": st.column_config.NumberColumn("Adjustment %", format="%.1f%%",
+                                                                           min_value=0.0, max_value=100.0, step=0.1),
+                        },
+                    )
+                    hasil = sub.merge(edited[["Salesman", "Adjustment %"]], on="Salesman", how="left")
+                    hasil["Target Teradjust"] = (hasil["Adjustment %"].fillna(0) / 100 * area_tgt).round(0)
+                    show_df(format_cols(hasil, rp_cols=["Net Sales", "Target Teradjust"], pct_cols=["Kontribusi %", "Adjustment %"]),
+                            hide_index=True, use_container_width=True)
+                    st.caption(f"Total Target Teradjust {label_div}: **{fmt_rp(hasil['Target Teradjust'].sum())}** "
+                               f"dari Target Area **{fmt_rp(area_tgt)}** "
+                               f"({fmt_pct(hasil['Adjustment %'].fillna(0).sum())} total Adjustment).")
+                    download_button(hasil, f"Download Excel ({label_div})", f"breakdown_target_{kode_div}.xlsx",
+                                     f"dl_bd_{kode_div}")
+                st.write("")
 
 if page == "📐 Paretto":
     with st.container(border=True):
@@ -2230,8 +2493,9 @@ if page == "🗃️ Stock":
         st.markdown(
             "**Cara membaca** (upload minimal 2 file stok dengan tanggal berbeda):  \n"
             "🧊 **Tidak bergerak** — mis. *Torabika bubuk* tgl 25 = 10 ctn, tgl 26 = 10 ctn → stok sama, tidak ada yang keluar.  \n"
-            "🚀 **Sangat cepat keluar** — mis. *Energen Vanilla* tgl 25 = 300, tgl 26 = 10 → 97% stok sudah keluar.  \n"
-            "🏷️ Di bagian bawah, semua produk diklasifikasikan: Sangat Cepat, Cepat, Sedang, Lambat, Tidak Bergerak, dst.")
+            "🐢 **Sangat lambat** — mis. *Torabika Creamy Latte* tgl 25 = 189, tgl 26 = 188 → cuma 1 karton keluar.  \n"
+            "🏷️ Di bagian bawah, semua produk diklasifikasikan berdasarkan **qty karton yang keluar**: Tidak Bergerak "
+            "(0), Sangat Lambat (<10), Lambat (10–49), Standar (50–99), Fast Move (≥100).")
         cu1, cu2 = st.columns([4, 1])
         with cu1:
             stock_files = st.file_uploader("Upload file stok (.xlsx / .xls / .csv / .txt / .pdf)",
@@ -2275,13 +2539,13 @@ if page == "🗃️ Stock":
                     hdr_manual = st.number_input("Baris header (-1 = otomatis)", min_value=-1, max_value=200, value=-1,
                                                   key="stock_hdr")
                 with sa2:
-                    thr_sc = st.number_input("Sangat Cepat jika % keluar ≥", 1, 100, 70, key="stock_thr1")
+                    thr_sc = st.number_input("Fast Move jika qty keluar ≥", 1, 100000, 100, key="stock_thr1")
                 with sa3:
-                    thr_c = st.number_input("Cepat jika % keluar ≥", 1, 100, 40, key="stock_thr2")
+                    thr_c = st.number_input("Standar jika qty keluar ≥", 1, 100000, 50, key="stock_thr2")
                 with sa4:
-                    thr_s = st.number_input("Sedang jika % keluar ≥", 1, 100, 15, key="stock_thr3")
-                st.caption("Di bawah batas 'Sedang' = Lambat. % keluar = total stok yang berkurang ÷ stok tertinggi "
-                           "sebelum file terakhir.")
+                    thr_s = st.number_input("Lambat jika qty keluar ≥", 1, 100000, 10, key="stock_thr3")
+                st.caption("Di bawah batas 'Lambat' = Sangat Lambat (tapi masih >0). Qty keluar = total stok yang "
+                           "berkurang sepanjang file yang diupload (satuan sesuai 'Satuan qty' di atas).")
 
             frames = []
             for fname, raw in raws:
@@ -2362,34 +2626,38 @@ if page == "🗃️ Stock":
                                                  "Keluar/Hari": f"Keluar/Hari ({u})"})
 
                     nm = res[res["Klasifikasi"] == "Tidak Bergerak"].sort_values(last_col, ascending=False)
-                    sc = res[res["Klasifikasi"] == "Sangat Cepat"]
+                    lambat_df = res[res["Klasifikasi"].isin(["Sangat Lambat", "Lambat"])]
+                    sc = res[res["Klasifikasi"] == "Fast Move"]
 
                     k1s, k2s, k3s, k4s = st.columns(4)
                     with k1s:
-                        kpi_card("🧊", "Produk Tidak Bergerak", f"{len(nm):,}", f"dari {len(res):,} produk")
+                        kpi_card("🧊", "Produk Tidak Bergerak", f"{len(nm)}", f"dari {len(res)} produk")
                     with k2s:
-                        kpi_card("📦", f"Stok Tidak Bergerak ({u})", f"{nm[last_col].sum():,.0f}")
+                        kpi_card("🐢", "Produk Lambat / Sangat Lambat", f"{len(lambat_df)}")
                     with k3s:
-                        kpi_card("🚀", "Produk Sangat Cepat Keluar", f"{len(sc):,}")
+                        kpi_card("🚀", "Produk Fast Move", f"{len(sc)}")
                     with k4s:
                         kpi_card("📅", "Rentang Data", f"{n_days} hari", f"{first_col} → {last_col}")
 
-                    # ---------- A. Stok tidak bergerak (dimana / di bagian mana) ----------
+                    # ---------- A. Stok tidak bergerak & pergerakan lambat (scroll, Update 3.5 poin 3) ----------
                     st.write("")
                     with st.container(border=True):
-                        st.markdown("#### 🧊 Stok Tidak Bergerak")
-                        if nm.empty:
-                            st.success("Tidak ada stok yang diam — semua produk berubah antar file.")
+                        st.markdown("#### 🧊 Stok Tidak Bergerak & Pergerakan Lambat")
+                        slow_all = pd.concat([nm, lambat_df.sort_values("Keluar")], ignore_index=False)
+                        if slow_all.empty:
+                            st.success("Tidak ada stok yang diam atau bergerak lambat — semua produk bergerak normal.")
                         else:
-                            st.caption(f"{len(nm):,} produk dengan stok SAMA di semua file dan masih ada isinya "
-                                       f"(total {nm[last_col].sum():,.0f} {u}). Diurutkan dari stok terbanyak.")
+                            st.caption(f"{len(nm)} produk Tidak Bergerak (total {int(nm[last_col].sum())} {u}) + "
+                                       f"{len(lambat_df)} produk Lambat/Sangat Lambat (qty keluar < 50 {u}). "
+                                       f"Tabel bisa di-scroll untuk melihat semuanya — mis. Torabika Creamy Latte "
+                                       f"189→188 (keluar 1 {u}) masuk 'Sangat Lambat'.")
                             if has_loc:
                                 per_loc = nm.groupby("Lokasi").agg(Produk=("Kode", "count"), **{f"Total Stok ({u})": (last_col, "sum")}) \
                                     .reset_index().sort_values(f"Total Stok ({u})", ascending=False)
-                                st.markdown("**Posisi stok yang tidak bergerak (per lokasi/gudang/bagian):**")
+                                st.markdown("**Posisi stok Tidak Bergerak (per lokasi/gudang/bagian):**")
                                 lc1, lc2 = st.columns([1, 1.2])
                                 with lc1:
-                                    show_df(per_loc, height=260)
+                                    show_df(per_loc, height=260, plain_int=True)
                                 with lc2:
                                     figl = px.bar(per_loc, x=f"Total Stok ({u})", y="Lokasi", orientation="h",
                                                   color_discrete_sequence=[STOCK_CLASS_COLOR["Tidak Bergerak"]])
@@ -2397,9 +2665,9 @@ if page == "🗃️ Stock":
                                                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                                                        font=dict(color=CHART_FONT), yaxis=dict(autorange="reversed"))
                                     show_chart(figl)
-                            nm_out = nm[base_cols + date_cols + ["Klasifikasi"]]
-                            show_df(nm_out, height=380)
-                            download_button(nm_out, "Download Excel (Stok Tidak Bergerak)", "stok_tidak_bergerak.xlsx", "dl_stock_static")
+                            slow_out = slow_all[base_cols + date_cols + ["Keluar", "Klasifikasi"]]
+                            show_df(slow_out, height=420, plain_int=True)
+                            download_button(slow_out, "Download Excel (Tidak Bergerak & Lambat)", "stok_tidak_bergerak.xlsx", "dl_stock_static")
 
                     # ---------- B. Top produk paling cepat keluar ----------
                     st.write("")
@@ -2420,7 +2688,7 @@ if page == "🗃️ Stock":
                         else:
                             fast.insert(0, "Rank", range(1, len(fast) + 1))
                             fast_out = fast[["Rank"] + base_cols + date_cols + ["Keluar", "% Keluar", "Keluar/Hari", "Klasifikasi"]]
-                            show_df(show_fmt(fast_out), height=420)
+                            show_df(show_fmt(fast_out), height=420, plain_int=True)
                             fc = fast.copy()
                             fc["Produk"] = fc["Nama Produk"].fillna(fc["Kode"]).astype(str).str.slice(0, 34)
                             figf = px.bar(fc.iloc[::-1], x="Keluar", y="Produk", orientation="h", color="Klasifikasi",
@@ -2431,32 +2699,30 @@ if page == "🗃️ Stock":
                             show_chart(figf)
                             download_button(fast_out, "Download Excel (Top Cepat Keluar)", "stok_cepat_keluar.xlsx", "dl_stock_fast")
 
-                    # ---------- C. Klasifikasi semua produk ----------
+                    # ---------- C. Klasifikasi semua produk (donut, Update 3.5 poin 3) ----------
                     st.write("")
                     with st.container(border=True):
                         st.markdown("#### 🏷️ Klasifikasi Produk")
-                        st.caption("Semua produk dikelompokkan menurut % stok yang keluar (batasnya bisa diubah di "
-                                   "'Pengaturan lanjutan'). 'Stok Bertambah' = hanya ada tambahan stok, belum ada yang keluar.")
+                        st.caption("Semua produk dikelompokkan menurut QTY yang keluar (batasnya bisa diubah di "
+                                   "'Pengaturan lanjutan'): Tidak Bergerak (0) · Sangat Lambat (<10) · Lambat (10–49) · "
+                                   "Standar (50–99) · Fast Move (≥100). 'Stok Bertambah' = hanya ada tambahan stok, "
+                                   "belum ada yang keluar.")
                         summ = res.groupby("Klasifikasi").agg(Produk=("Kode", "count"), **{f"Stok Terakhir ({u})": (last_col, "sum"),
                                                                                              f"Total Keluar ({u})": ("Keluar", "sum")}) \
                             .reindex(STOCK_CLASSES).dropna(subset=["Produk"]).reset_index()
                         summ["Produk"] = summ["Produk"].astype(int)
                         sc1, sc2 = st.columns([1.2, 1])
                         with sc1:
-                            show_df(summ, height=300)
+                            show_df(summ, height=300, plain_int=True)
                         with sc2:
-                            figc = px.bar(summ, x="Klasifikasi", y="Produk", color="Klasifikasi", color_discrete_map=STOCK_CLASS_COLOR,
-                                          text="Produk")
-                            figc.update_layout(height=300, margin=dict(t=10, b=10, l=10, r=10), showlegend=False,
-                                               paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color=CHART_FONT))
-                            show_chart(figc)
+                            show_chart(stock_class_donut(summ))
                         sel_cls = st.multiselect("Tampilkan klasifikasi", STOCK_CLASSES,
                                                   default=[c for c in STOCK_CLASSES if c != "Kosong"], key="stock_cls_filter")
                         allc = res[res["Klasifikasi"].isin(sel_cls)].sort_values(["Klasifikasi", "% Keluar"], ascending=[True, False])
                         order = {c: i for i, c in enumerate(STOCK_CLASSES)}
                         allc = allc.assign(_o=allc["Klasifikasi"].map(order)).sort_values(["_o", "% Keluar"], ascending=[True, False]).drop(columns="_o")
                         allc_out = allc[base_cols + date_cols + ["Keluar", "% Keluar", "Keluar/Hari", "Klasifikasi"]]
-                        show_df(show_fmt(allc_out), height=460)
+                        show_df(show_fmt(allc_out), height=460, plain_int=True)
                         download_button(allc_out, "Download Excel (Klasifikasi Produk)", "klasifikasi_produk.xlsx", "dl_stock_class")
 
 # ---------------------------------------------------------------- Performance SS
@@ -2524,8 +2790,11 @@ if page == "📈 Performance SS":
 
     st.write("")
     with st.container(border=True):
-        st.markdown("#### 🎯 Insentif Sales Supervisor (Skema IBN M245)")
-        st.caption("Reward & Punishment (Tagihan, Visit in Radius) tidak dihitung, sama seperti menu Insentif salesman.")
+        st.markdown("#### 🎯 Insentif Sales Supervisor (Skema IBN M245 — Oktober-Desember 2026)")
+        st.caption("Reward & Punishment (Tagihan, Visit in Radius) tidak dihitung, sama seperti menu Insentif salesman. "
+                   "Kriteria ke-4 'Outlet Active Quality (Retail Channel)' masih dihitung dari %OA biasa (vs CB "
+                   "Standar) — cuma rentang & nominalnya yang diperbarui, karena data transaksi per-channel "
+                   "retail dengan nilai min Rp150rb belum dipisah secara khusus.")
 
         n_tanpa_target_ss = len(kode_sales_scope_ss) - len(kode_bt_ss)
         if kode_bt_ss and n_tanpa_target_ss > 0:
@@ -2547,7 +2816,7 @@ if page == "📈 Performance SS":
                     t = t[t[TARGET_DIVISI_COL["periode"]].isna() | t[TARGET_DIVISI_COL["periode"]].isin(periode_sel)]
                 tgt_val = t[TARGET_DIVISI_COL["target"]].sum()
             pct_cat = (net_val / tgt_val * 100) if tgt_val else np.nan
-            nilai_cat = tier_lookup(pct_cat, INSENTIF_TIERS_SS["category"])
+            nilai_cat = tier_lookup(pct_cat, INSENTIF_TIERS_SS["category"][kode_div])
             insentif_kategori_ss += nilai_cat
             detail_kategori_ss.append(f"{label_div}: {fmt_pct(pct_cat)} → {fmt_rp(nilai_cat)}")
 
@@ -2578,7 +2847,9 @@ if page == "📖 Read Me":
     with st.container(border=True):
         st.markdown("#### 📖 Standart Produktivity Team M245 (berlaku per 03 Agustus 2026, W32)")
         st.caption("Sumber: Surat No. 001-W/EDP/VII/2026. CB Cover dipakai sebagai pembagi % OA di seluruh "
-                   "dashboard. Pembagi % MHS/SKU Sold TIDAK memakai tabel ini lagi — lihat catatan di menu MHS.")
+                   "dashboard. EC/Day dipakai sebagai pembagi kotak EC (Capaian Salesman) & kriteria 'Effective "
+                   "Call' di Insentif (EC Standar × HKA). Pembagi % MHS/SKU Sold TIDAK memakai tabel ini lagi — "
+                   "lihat catatan di menu MHS.")
         df_prod_std = pd.DataFrame([
             {"Type SF": k, "CB Cover": v["cb_cover"], "Call/Day": v["call_day"], "EC/Day": v["ec_day"],
              "IPT/Day": v["ipt_day"], "OA/Month": f'{v["oa_month_pct"]}%', "Target Channel": v["target_channel"]}
@@ -2603,23 +2874,30 @@ if page == "📖 Read Me":
 
     st.write("")
     with st.container(border=True):
-        st.markdown("#### 📖 Skema Insentif M245 (Agustus-September 2026)")
-        st.caption("Sumber: Scheme TO Retail, TO Grosir & Sales Supervisor (IBN) Agust-Sept 2026 (PDF resmi). "
-                   "Reward & Punishment tidak dipakai.")
+        st.markdown("#### 📖 Skema Insentif M245 (Oktober-Desember 2026)")
+        st.caption("Sumber: Scheme TO Retail, TO Grosir, KLK & Sales Supervisor (IBN) Okt-Des 2026 (PDF resmi, "
+                   "update 25 September 2026). Reward & Punishment tidak dipakai. 'Sales per Kategori' nominal "
+                   "tier ≥110% sekarang beda per divisi (Coffee/Cereal/Instant Food/Homecare) — lihat kolom Divisi.")
         all_tiers_readme = dict(INSENTIF_TIERS)
         all_tiers_readme["Sales Supervisor (SS)"] = INSENTIF_TIERS_SS
         for team, tiers in all_tiers_readme.items():
             st.markdown(f"**{team}**")
-            df_show = pd.DataFrame({
-                "Kriteria": ["Sales M245"] * len(tiers["sales"]) + ["Sales per Kategori (x4 Divisi)"] * len(tiers["category"]) +
-                            ["SKU Sold"] * len(tiers["mhs"]) + ["Outlet Active"] * len(tiers["oa"]),
-                "Min. %": [t[0] for t in tiers["sales"]] + [t[0] for t in tiers["category"]] +
-                          [t[0] for t in tiers["mhs"]] + [t[0] for t in tiers["oa"]],
-                "Nominal": [fmt_rp(t[1]) for t in tiers["sales"]] + [fmt_rp(t[1]) for t in tiers["category"]] +
-                           [fmt_rp(t[1]) for t in tiers["mhs"]] + [fmt_rp(t[1]) for t in tiers["oa"]],
-            })
+            crit4_key = "ec" if "ec" in tiers else "oa"
+            crit4_label = "Effective Call" if crit4_key == "ec" else "Outlet Active Quality"
+            kriteria, divisi_col, min_pct, nominal = [], [], [], []
+            for t in tiers["sales"]:
+                kriteria.append("Sales M245"); divisi_col.append("-"); min_pct.append(t[0]); nominal.append(fmt_rp(t[1]))
+            for kode_div, label_div in DIVISI_LABEL.items():
+                for t in tiers["category"][kode_div]:
+                    kriteria.append("Sales per Kategori"); divisi_col.append(label_div)
+                    min_pct.append(t[0]); nominal.append(fmt_rp(t[1]))
+            for t in tiers["mhs"]:
+                kriteria.append("SKU Sold"); divisi_col.append("-"); min_pct.append(t[0]); nominal.append(fmt_rp(t[1]))
+            for t in tiers[crit4_key]:
+                kriteria.append(crit4_label); divisi_col.append("-"); min_pct.append(t[0]); nominal.append(fmt_rp(t[1]))
+            df_show = pd.DataFrame({"Kriteria": kriteria, "Divisi": divisi_col, "Min. %": min_pct, "Nominal": nominal})
             show_df(df_show, hide_index=True, use_container_width=True)
-        st.caption("Tabel ini acuan statis dari spesifikasi awal.")
+        st.caption("Tabel ini acuan statis dari spesifikasi PDF Okt-Des 2026.")
 
 # ===== Gambar latar (hexagon_dark, dikompres) — JANGAN DIEDIT, dibaca otomatis oleh _bg_data_uri() =====
 # BG_B64_BEGIN
