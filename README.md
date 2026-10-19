@@ -334,3 +334,11 @@ langsung dan dikonfirmasi sebelum dikerjakan:
    "retail channel only, min Rp150rb" yang lebih presisi.
 4. Gap Harian kotak EC pakai Target penuh periode (sama seperti Gap Harian lain di dashboard), dan kotak
    "Target" & "Target s/d Hari Ini" ditampilkan berdampingan sesuai mekanisme yang dijelaskan di spec.
+
+## Update 3.6 (persen EC, menu Ikat Target)
+
+- **Kotak EC di Capaian Salesman**: ditambah kolom **%** (Capaian ÷ Target penuh, mis. 325/480 = 67,7%), urutannya
+  jadi Target | s/d Hari Ini | Capaian | % | Gap Harian. Ikut di gambar PNG (label PNG ditulis "EC" tanpa emoji
+  karena font gambar tidak mendukung emoji).
+- **Menu baru "🔗 Ikat Target"** (baris menu ke-2, setelah Breakdown Target): placeholder, menunggu gambaran
+  yang akan dikirim terpisah.

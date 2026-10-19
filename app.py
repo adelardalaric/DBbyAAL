@@ -360,6 +360,7 @@ def inject_css():
                 font-size:0.74rem; font-size:clamp(0.52rem, 1.95cqw, 0.8rem); }}
     .sc-cell.gap-bad {{ border:1.5px solid #ef4444; color:#fca5a5; }}
     .sc-cell.gap-ok {{ border:1.5px solid #22c55e; color:#86efac; }}
+    .sc-row.sc-ec {{ grid-template-columns:84px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,0.8fr) minmax(0,1.3fr); }}
     .sc-row.sc-total .dv-box {{ min-height:auto; padding:6px 7px; }}
     .sc-row.sc-total .dv-value {{ font-size:0.8rem; font-size:clamp(0.56rem, 2.2cqw, 0.92rem); }}
     .sc-sep {{ height:1px; background:rgba(255,255,255,0.08); margin:6px 0 6px; }}
@@ -398,6 +399,9 @@ def inject_css():
         .sc-row {{ grid-template-columns:70px 1fr 1fr; }}
         .sc-row > :nth-child(4) {{ grid-column:2; }}
         .sc-row > :nth-child(5) {{ grid-column:3; }}
+        .sc-row.sc-ec {{ grid-template-columns:70px 1fr 1fr 1fr; }}
+        .sc-row.sc-ec > :nth-child(4) {{ grid-column:auto; }}
+        .sc-row.sc-ec > :nth-child(5) {{ grid-column:2; }}
         .sc-cell {{ font-size:0.72rem; }}
     }}
     </style>
@@ -1633,10 +1637,12 @@ def salesman_card_html(name: str, team: str, tgt, cap, div_rows: list | None = N
         ec_tgt_full, ec_tgt_sd, ec_cap = ec_row
         ec_css, ec_gtxt, _ = gap_state_count(ec_tgt_full, ec_cap)
         out.append('<div class="sc-sep"></div>')
-        out.append('<div class="sc-row sc-total"><div class="sc-lab">📞 EC</div>'
+        ec_pct = (ec_cap / ec_tgt_full * 100) if pd.notna(ec_tgt_full) and ec_tgt_full else np.nan
+        out.append('<div class="sc-row sc-total sc-ec"><div class="sc-lab">📞 EC</div>'
                     + box_html("Target", f"{int(ec_tgt_full) if pd.notna(ec_tgt_full) else 0}")
                     + box_html("s/d Hari Ini", f"{int(ec_tgt_sd) if pd.notna(ec_tgt_sd) else 0}")
                     + box_html("Capaian", f"{int(ec_cap) if pd.notna(ec_cap) else 0}")
+                    + box_html("%", fmt_pct(ec_pct))
                     + box_html("Gap Harian", ec_gtxt, "", ec_css) + "</div>")
     out.append("</div>")
     return "".join(out)
@@ -1691,6 +1697,13 @@ def render_capaian_png(rows: list, title: str, subtitle: str) -> bytes:
         x = inner_x0 + LAB_W + CG + sum(weights[:i]) * unit + i * CG
         return x, weights[i] * unit
 
+    weights_ec = [1.2, 1.2, 1.1, 0.8, 1.5]   # kotak EC punya 5 kolom (ada kolom %)
+    unit_ec = (inner_w - LAB_W - 5 * CG) / sum(weights_ec)
+
+    def col_x_ec(i):
+        x = inner_x0 + LAB_W + CG + sum(weights_ec[:i]) * unit_ec + i * CG
+        return x, weights_ec[i] * unit_ec
+
     for r in rows:
         tgt, cap = r["tgt"], r["cap"]
         ch = card_height(r)
@@ -1743,16 +1756,18 @@ def render_capaian_png(rows: list, title: str, subtitle: str) -> bytes:
                 ec_css, ec_gtxt, _ = gap_state_count(ec_tgt_full, ec_cap)
                 ec_gtxt = ec_gtxt.replace("✓ ", "")
                 ey = ry + 6
-                d.text((inner_x0, ey + 20), "📞 EC", font=f_dlab, fill="#B9B6F5")
+                d.text((inner_x0, ey + 20), "EC", font=f_dlab, fill="#B9B6F5")
+                ec_pct = (ec_cap / ec_tgt_full * 100) if pd.notna(ec_tgt_full) and ec_tgt_full else np.nan
                 ec_vals = [("TARGET", f"{int(ec_tgt_full) if pd.notna(ec_tgt_full) else 0}", "#F3F4F6", "#2a2a33", 1),
                            ("S/D HARI INI", f"{int(ec_tgt_sd) if pd.notna(ec_tgt_sd) else 0}", "#F3F4F6", "#2a2a33", 1),
                            ("CAPAIAN", f"{int(ec_cap) if pd.notna(ec_cap) else 0}", "#F3F4F6", "#2a2a33", 1),
+                           ("%", fmt_pct(ec_pct), "#F3F4F6", "#2a2a33", 1),
                            ("GAP HARIAN", ec_gtxt,
                             "#86EFAC" if ec_css == "dv-gap-ok" else ("#FCA5A5" if ec_css == "dv-gap-bad" else "#F3F4F6"),
                             "#22c55e" if ec_css == "dv-gap-ok" else ("#ef4444" if ec_css == "dv-gap-bad" else "#2a2a33"),
                             2 if ec_css else 1)]
                 for i, (lab, val, vcol, ocol, ow) in enumerate(ec_vals):
-                    x, w = col_x(i)
+                    x, w = col_x_ec(i)
                     d.rounded_rectangle([x, ey, x + w, ey + 56], radius=10, fill="#14141a", outline=ocol, width=ow)
                     d.text((x + 9, ey + 7), lab, font=f_lab, fill="#8b8b98")
                     d.text((x + 9, ey + 27), val, font=f_val, fill=vcol)
@@ -1761,16 +1776,18 @@ def render_capaian_png(rows: list, title: str, subtitle: str) -> bytes:
             ec_css, ec_gtxt, _ = gap_state_count(ec_tgt_full, ec_cap)
             ec_gtxt = ec_gtxt.replace("✓ ", "")
             ey = bar_y + 4 + 10
-            d.text((inner_x0, ey + 20), "📞 EC", font=f_dlab, fill="#B9B6F5")
+            d.text((inner_x0, ey + 20), "EC", font=f_dlab, fill="#B9B6F5")
+            ec_pct = (ec_cap / ec_tgt_full * 100) if pd.notna(ec_tgt_full) and ec_tgt_full else np.nan
             ec_vals = [("TARGET", f"{int(ec_tgt_full) if pd.notna(ec_tgt_full) else 0}", "#F3F4F6", "#2a2a33", 1),
                        ("S/D HARI INI", f"{int(ec_tgt_sd) if pd.notna(ec_tgt_sd) else 0}", "#F3F4F6", "#2a2a33", 1),
                        ("CAPAIAN", f"{int(ec_cap) if pd.notna(ec_cap) else 0}", "#F3F4F6", "#2a2a33", 1),
+                       ("%", fmt_pct(ec_pct), "#F3F4F6", "#2a2a33", 1),
                        ("GAP HARIAN", ec_gtxt,
                         "#86EFAC" if ec_css == "dv-gap-ok" else ("#FCA5A5" if ec_css == "dv-gap-bad" else "#F3F4F6"),
                         "#22c55e" if ec_css == "dv-gap-ok" else ("#ef4444" if ec_css == "dv-gap-bad" else "#2a2a33"),
                         2 if ec_css else 1)]
             for i, (lab, val, vcol, ocol, ow) in enumerate(ec_vals):
-                x, w = col_x(i)
+                x, w = col_x_ec(i)
                 d.rounded_rectangle([x, ey, x + w, ey + 56], radius=10, fill="#14141a", outline=ocol, width=ow)
                 d.text((x + 9, ey + 7), lab, font=f_lab, fill="#8b8b98")
                 d.text((x + 9, ey + 27), val, font=f_val, fill=vcol)
@@ -1792,7 +1809,7 @@ mhs_by_sales_all = hitung_mhs_by_salesman(mhs_resume_all, df_filtered, outlet_co
 # =====================================================================
 NAV_ROW1 = ["📊 Overview", "🧑‍💼 By Salesman", "📇 Capaian Salesman", "🗺️ By Wilayah",
             "🏷️ By Subbrand & Divisi", "📦 MHS", "🎯 Insentif"]
-NAV_ROW2 = ["📋 LATO", "🆕 LTD NPL", "📐 Paretto", "🧩 Breakdown Target", "🗃️ Stock", "📈 Performance SS", "📖 Read Me"]
+NAV_ROW2 = ["📋 LATO", "🆕 LTD NPL", "📐 Paretto", "🧩 Breakdown Target", "🔗 Ikat Target", "🗃️ Stock", "📈 Performance SS", "📖 Read Me"]
 
 if st.session_state.get("page") not in NAV_ROW1 + NAV_ROW2:
     st.session_state["page"] = NAV_ROW1[0]
@@ -2454,6 +2471,11 @@ if page == "🧩 Breakdown Target":
                     download_button(hasil, f"Download Excel ({label_div})", f"breakdown_target_{kode_div}.xlsx",
                                      f"dl_bd_{kode_div}")
                 st.write("")
+
+if page == "🔗 Ikat Target":
+    with st.container(border=True):
+        st.markdown("#### 🔗 Ikat Target")
+        st.info("Menu ini akan dikembangkan lebih lanjut setelah gambaran/spesifikasinya dikirim.")
 
 if page == "📐 Paretto":
     with st.container(border=True):
