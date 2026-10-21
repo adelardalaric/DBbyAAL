@@ -342,3 +342,27 @@ langsung dan dikonfirmasi sebelum dikerjakan:
   karena font gambar tidak mendukung emoji).
 - **Menu baru "🔗 Ikat Target"** (baris menu ke-2, setelah Breakdown Target): placeholder, menunggu gambaran
   yang akan dikirim terpisah.
+
+## Update 3.7 (toggle 90%/110% di Capaian Salesman, Breakdown Target dibangun ulang)
+
+- **Capaian Salesman — toggle 90% / 110%**: dua tombol kecil di sebelah kanan kotak Gap Harian (baris Σ TOTAL).
+  Default **100%** (tidak klik apa-apa). Klik **110%** → Target jadi Target × 1,1 (mis. 100 → 110), Capaian tetap
+  (80), lalu % capaian dan Gap Harian dihitung ulang (gap 20 → 30). Klik tombol yang sama sekali lagi untuk
+  kembali ke 100%. Toggle berlaku untuk baris Σ TOTAL **dan** keempat baris divisi; kotak EC tidak berubah.
+  Gambar PNG yang di-download tetap memakai target 100%.
+  - Teknis: dipasang murni lewat CSS (radio tersembunyi tanpa atribut `checked` + label), jadi tidak memicu
+    rerun Streamlit dan tiap kartu punya toggle sendiri. Catatan: kalau urutan kartu berubah (ganti Urutkan /
+    Filter), pilihan toggle bisa ikut posisi kartu, bukan nama salesman — tinggal klik ulang.
+- **Breakdown Target** (dibangun ulang):
+  - Baris = tiap salesman **TO Grosir, TO Retail, Motoris, KVS ST, Sales Office**, ditambah satu baris
+    **MUH** yang menggabungkan semua salesman di luar kelima kode itu (Salesforce 116 MUH, BJMU-…, MTP-…, dst).
+  - Kolom lurus ke kanan: **MU 245 | Coffee | Cereal | Instant Food | Home Care**; tiap kelompok berisi
+    Kontribusi % (1 desimal), Adjustment %, dan Target. Kolom Entitas menempel di kiri, tabel bisa digeser ke
+    kanan, dan semua angka tidak dipotong saat di-zoom.
+  - **MU 245** = jumlah target 4 divisi per baris (tidak diedit langsung; ikut dari adjustment divisi).
+    Baris subtotal di file Excel (divisi kosong) diabaikan supaya tidak terhitung dobel.
+  - **Menu Adjustment**: tabel editable (Adjustment % per divisi per baris) di atas tabel utama; default =
+    Kontribusi % dari LBP. Tombol "↺ Reset" mengembalikan semua ke default. Ada pengecekan total Adjustment tiap
+    divisi (harus 100%, ditandai ⚠️ / merah di baris TOTAL kalau tidak).
+  - **Total target semuanya**: 5 kartu di atas (Total Target MU 245 + tiap divisi, dari file Excel) dan baris
+    **TOTAL** di tabel + tombol Download Excel.

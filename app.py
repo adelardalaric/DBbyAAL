@@ -322,6 +322,21 @@ def inject_css():
                           font-weight:600; font-size:0.78rem; letter-spacing:0.3px; border-bottom:1px solid rgba(255,255,255,0.14); }}
     table.tbl tbody tr:nth-child(even) {{ background:rgba(255,255,255,0.045); }}
     table.tbl tbody tr:hover {{ background:rgba(169,166,247,0.12); }}
+    /* Tabel Breakdown Target (Update 3.7): header 2 tingkat, kolom Entitas menempel di kiri, kolom tidak dipersempit */
+    table.tbl.bd thead th {{ height:34px; box-sizing:border-box; }}
+    table.tbl.bd thead tr:nth-child(2) th {{ top:34px; }}
+    table.tbl.bd th.grp {{ color:#7DD3FC; font-size:0.84rem; }}
+    table.tbl.bd th, table.tbl.bd td {{ min-width:96px; }}
+    table.tbl.bd td:nth-child(3n+1), table.tbl.bd td:nth-child(3n+4) {{ min-width:130px; }}
+    table.tbl.bd .gl {{ border-left:1px solid rgba(140,160,210,0.28); }}
+    table.tbl.bd th.bd-first, table.tbl.bd td.bd-first {{ position:sticky; left:0; z-index:3; text-align:left; font-weight:700;
+                                                         min-width:190px; background:rgb(17,20,29); }}
+    table.tbl.bd thead th.bd-first {{ z-index:5; }}
+    table.tbl.bd tbody tr:nth-child(even) td.bd-first {{ background:rgb(24,27,37); }}
+    table.tbl.bd tr.tot td {{ font-weight:800; background:rgba(125,211,252,0.10); border-top:2px solid rgba(125,211,252,0.5); }}
+    table.tbl.bd tr.tot td.bd-first {{ background:rgb(22,40,52); }}
+    table.tbl.bd td {{ color:#E8EAF4; }}
+    table.tbl.bd td.bad {{ color:#f87171; }}
     table.tbl tr.row-alert td {{ background:#3b1414; color:#fca5a5; }}
     table.tbl td.c-bad {{ color:#f87171; font-weight:700; }}
     table.tbl td.c-ok {{ color:#4ade80; font-weight:700; }}
@@ -362,6 +377,18 @@ def inject_css():
     .sc-cell.gap-ok {{ border:1.5px solid #22c55e; color:#86efac; }}
     .sc-row.sc-ec {{ grid-template-columns:84px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,0.8fr) minmax(0,1.3fr); }}
     .sc-row.sc-total .dv-box {{ min-height:auto; padding:6px 7px; }}
+    /* Toggle 90% / 110% (Update 3.7): radio tanpa atribut checked + label; default (tak ada yang dicentang) = 100% */
+    .sc-card > input.tg-in {{ display:none; }}
+    .sc-card > .tv90, .sc-card > .tv110 {{ display:none; }}
+    .sc-card > input.tg90:checked ~ .tv100, .sc-card > input.tg110:checked ~ .tv100 {{ display:none; }}
+    .sc-card > input.tg90:checked ~ .tv90 {{ display:block; }}
+    .sc-card > input.tg110:checked ~ .tv110 {{ display:block; }}
+    .sc-row.sc-tg {{ grid-template-columns:84px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,0.8fr) minmax(0,1.5fr) 50px; }}
+    .tg-wrap {{ display:flex; flex-direction:column; justify-content:center; gap:3px; }}
+    .tg-chip {{ cursor:pointer; user-select:none; text-align:center; font-size:0.62rem; font-weight:700; line-height:1.3;
+               color:#7DD3FC; border:1px solid #1f4a52; border-radius:999px; padding:1px 2px; white-space:nowrap; }}
+    .tg-chip:hover {{ background:rgba(125,211,252,0.15); }}
+    .tg-chip.on {{ background:#7DD3FC; color:#06222b; }}
     .sc-row.sc-total .dv-value {{ font-size:0.8rem; font-size:clamp(0.56rem, 2.2cqw, 0.92rem); }}
     .sc-sep {{ height:1px; background:rgba(255,255,255,0.08); margin:6px 0 6px; }}
     .sc-row.sc-divisi {{ margin-bottom:4px; }}
@@ -402,6 +429,9 @@ def inject_css():
         .sc-row.sc-ec {{ grid-template-columns:70px 1fr 1fr 1fr; }}
         .sc-row.sc-ec > :nth-child(4) {{ grid-column:auto; }}
         .sc-row.sc-ec > :nth-child(5) {{ grid-column:2; }}
+        .sc-row.sc-tg {{ grid-template-columns:70px 1fr 1fr; }}
+        .sc-row.sc-tg > :nth-child(6) {{ grid-column:1; grid-row:2; flex-direction:row; }}
+        .sc-row.sc-divisi.sc-tg > :nth-child(6) {{ display:none; }}
         .sc-cell {{ font-size:0.72rem; }}
     }}
     </style>
@@ -1610,29 +1640,54 @@ def _pil_font(size: int, bold: bool = False):
         return ImageFont.load_default()
 
 
-def salesman_card_html(name: str, team: str, tgt, cap, div_rows: list | None = None, ec_row: tuple | None = None) -> str:
+def salesman_card_html(name: str, team: str, tgt, cap, div_rows: list | None = None, ec_row: tuple | None = None,
+                       uid: str = "0") -> str:
     """Kartu ringkas satu salesman: baris TOTAL (kotak berlabel) + optional 4 baris divisi di bawahnya
     + optional kotak EC (poin 1 Update 3.5) di baris paling bawah.
     div_rows: list of (icon, label, target, capaian).
-    ec_row: (ec_tgt_full, ec_tgt_sd, ec_cap) — Target penuh periode, Target s/d hari ini, Capaian EC aktual."""
+    ec_row: (ec_tgt_full, ec_tgt_sd, ec_cap) — Target penuh periode, Target s/d hari ini, Capaian EC aktual.
+    Update 3.7: toggle 90% / 110% di kanan kotak Gap Harian. Target (Total + divisi) dikali faktor, Capaian tetap,
+    % dan Gap Harian ikut dihitung ulang. Tiga varian badan kartu (100/90/110) dirender sekaligus; varian aktif
+    dipilih murni lewat CSS (radio tersembunyi + label), default 100% — tanpa rerun Streamlit."""
     import html as _html
-    pct = (cap / tgt * 100) if pd.notna(tgt) and tgt else np.nan
-    css, gtxt, _ = gap_state(tgt, cap)
     tag = f'<span class="sc-tag">{_html.escape(team)}</span>' if team and team != "Lainnya" else ""
+    u = re.sub(r"[^0-9A-Za-z]", "", str(uid)) or "0"
+
+    def _chips(active: int) -> str:
+        # dari varian aktif: klik chip yang aktif -> kembali 100%; klik chip lain -> pindah ke faktor itu
+        def chip(f: int) -> str:
+            tgt_id = f"tg100_{u}" if f == active else f"tg{f}_{u}"
+            return f'<label for="{tgt_id}" class="tg-chip{" on" if f == active else ""}">{f}%</label>'
+        return f'<div class="tg-wrap">{chip(90)}{chip(110)}</div>'
+
+    def _body(factor: float, active: int) -> str:
+        t = tgt * factor if pd.notna(tgt) else tgt
+        pct = (cap / t * 100) if pd.notna(t) and t else np.nan
+        css, gtxt, _ = gap_state(t, cap)
+        o = [f'<div class="tv tv{active}">',
+             '<div class="sc-row sc-total sc-tg"><div class="sc-lab">Σ TOTAL</div>',
+             box_html("Target", fmt_rp(t)), box_html("Capaian", fmt_rp(cap)), box_html("%", fmt_pct(pct)),
+             box_html("Gap Harian", gtxt, "", css), _chips(active), "</div>", bar_html(pct)]
+        if div_rows:
+            o.append('<div class="sc-sep"></div>')
+            for icon, lbl, d_tgt, d_cap in div_rows:
+                dt = d_tgt * factor if pd.notna(d_tgt) else d_tgt
+                d_pct = (d_cap / dt * 100) if pd.notna(dt) and dt else np.nan
+                d_css, d_gtxt, _ = gap_state(dt, d_cap)
+                g_cls = {"dv-gap-ok": " gap-ok", "dv-gap-bad": " gap-bad"}.get(d_css, "")
+                o.append(f'<div class="sc-row sc-divisi sc-tg"><div class="sc-lab">{icon} {lbl}</div>'
+                         f'<div class="sc-cell">{nice(fmt_rp(dt))}</div><div class="sc-cell">{nice(fmt_rp(d_cap))}</div>'
+                         f'<div class="sc-cell">{nice(fmt_pct(d_pct))}</div><div class="sc-cell{g_cls}">{nice(d_gtxt)}</div>'
+                         '<div></div></div>')
+        o.append("</div>")
+        return "".join(o)
+
     out = ['<div class="sc-card">',
+           f'<input type="radio" class="tg-in tg90" name="tgg{u}" id="tg90_{u}">'
+           f'<input type="radio" class="tg-in tg100" name="tgg{u}" id="tg100_{u}">'
+           f'<input type="radio" class="tg-in tg110" name="tgg{u}" id="tg110_{u}">',
            f'<div class="sc-head"><span class="sc-name">{_html.escape(name)}</span>{tag}</div>',
-           '<div class="sc-row sc-total"><div class="sc-lab">Σ TOTAL</div>',
-           box_html("Target", fmt_rp(tgt)), box_html("Capaian", fmt_rp(cap)), box_html("%", fmt_pct(pct)),
-           box_html("Gap Harian", gtxt, "", css), "</div>", bar_html(pct)]
-    if div_rows:
-        out.append('<div class="sc-sep"></div>')
-        for icon, lbl, d_tgt, d_cap in div_rows:
-            d_pct = (d_cap / d_tgt * 100) if pd.notna(d_tgt) and d_tgt else np.nan
-            d_css, d_gtxt, _ = gap_state(d_tgt, d_cap)
-            g_cls = {"dv-gap-ok": " gap-ok", "dv-gap-bad": " gap-bad"}.get(d_css, "")
-            out.append(f'<div class="sc-row sc-divisi"><div class="sc-lab">{icon} {lbl}</div>'
-                       f'<div class="sc-cell">{nice(fmt_rp(d_tgt))}</div><div class="sc-cell">{nice(fmt_rp(d_cap))}</div>'
-                       f'<div class="sc-cell">{nice(fmt_pct(d_pct))}</div><div class="sc-cell{g_cls}">{nice(d_gtxt)}</div></div>')
+           _body(1.0, 100), _body(0.9, 90), _body(1.1, 110)]
     if ec_row:
         ec_tgt_full, ec_tgt_sd, ec_cap = ec_row
         ec_css, ec_gtxt, _ = gap_state_count(ec_tgt_full, ec_cap)
@@ -2015,7 +2070,8 @@ if page == "📇 Capaian Salesman":
         ec_tgt_sd_card = ec_standar_card * max(hka - hke, 0)
         ec_cap_card = r["EC"] if pd.notna(r["EC"]) else 0
         ec_row = (ec_tgt_full_card, ec_tgt_sd_card, ec_cap_card)
-        cards_html.append(salesman_card_html(r["Salesman"], r["Team"], tgt_c, r["Net Sales"], div_rows, ec_row))
+        cards_html.append(salesman_card_html(r["Salesman"], r["Team"], tgt_c, r["Net Sales"], div_rows, ec_row,
+                                             uid=f"{len(cards_html)}"))
         rows_png.append({"name": r["Salesman"], "team": r["Team"], "tgt": tgt_c, "cap": r["Net Sales"],
                          "divisi": [(lbl, t_, c_) for _ic, lbl, t_, c_ in div_rows] if div_rows else None,
                          "ec": ec_row})
@@ -2417,60 +2473,143 @@ if page == "🧩 Breakdown Target":
             div_long_bd["_divisi_norm"] = div_long_bd["Divisi"].map(kode_by_label)
             area_net_divisi = div_long_bd.groupby("_divisi_norm")["Net Sales"].sum()
 
-            st.write("")
-            with st.container(border=True):
-                st.markdown("#### 📊 Target Area per Divisi (dari file Breakdown Target)")
-                area_show = pd.DataFrame([
-                    {"Divisi": label_div, "Target Area (dari Excel)": area_target_divisi.get(kode_div, 0),
-                     "Pencapaian Area (dari LBP)": area_net_divisi.get(kode_div, 0)}
-                    for kode_div, label_div in DIVISI_LABEL.items()
-                ])
-                show_df(format_cols(area_show, rp_cols=["Target Area (dari Excel)", "Pencapaian Area (dari LBP)"]),
-                        hide_index=True, use_container_width=True)
+            BD_KODE = list(DIVISI_LABEL.keys())                       # 5, 6, 8, 16
+            BD_SHOW = {"5": "Coffee", "6": "Cereal", "8": "Instant Food", "16": "Home Care"}
+            BD_ICON = {"5": "☕", "6": "🥣", "8": "🍜", "16": "🧴"}
+            area_tgt_div = {k: float(area_target_divisi.get(k, 0)) for k in BD_KODE}
+            area_tgt_mu = sum(area_tgt_div.values())                  # MU 245 = jumlah 4 divisi (baris subtotal file diabaikan)
+            area_net_mu = float(sum(area_net_divisi.get(k, 0) for k in BD_KODE))
+
+            # Entitas baris: salesman individual untuk Salesforce 120 TO GROSIR, 121 TO RETAIL, 213 MOTORIS,
+            # 226 KVS ST, 999 SALES OFFICE. Semua salesman di luar kode itu (116 MUH, dst) digabung jadi satu
+            # baris "MUH" (Update 3.7 poin 2).
+            BD_SF_ORDER = ["120", "121", "213", "226", "999"]
+
+            def _sf_code(raw) -> str:
+                m_ = re.match(r"\s*(\d+)", str(raw))
+                return m_.group(1) if m_ else ""
+
+            code_by_sales = df_filtered.groupby(COL["salesman"])[COL["salesforce"]].first().map(_sf_code).to_dict()
+            div_long_bd["_sf"] = div_long_bd["Salesman"].map(code_by_sales).fillna("")
+            div_long_bd["Entitas"] = np.where(div_long_bd["_sf"].isin(BD_SF_ORDER), div_long_bd["Salesman"], "MUH")
 
             st.write("")
             salesman_bd = st.multiselect("Filter salesman", salesman_terpilih, default=salesman_terpilih,
                                           key=fkey("bd_salesman_filter"))
+            full_scope = set(salesman_bd) == set(salesman_terpilih)
+            sub_bd = div_long_bd[div_long_bd["Salesman"].isin(salesman_bd)]
 
-            for kode_div, label_div in DIVISI_LABEL.items():
-                with st.container(border=True):
-                    st.markdown(f"#### {DIV_ICON[label_div]} {label_div}")
-                    area_net = area_net_divisi.get(kode_div, 0)
-                    area_tgt = area_target_divisi.get(kode_div, 0)
-                    sub = div_long_bd[(div_long_bd["_divisi_norm"] == kode_div) &
-                                       (div_long_bd["Salesman"].isin(salesman_bd))].copy()
-                    sub["Kontribusi %"] = ((sub["Net Sales"] / area_net * 100) if area_net else 0).round(1)
-                    sub = sub[["Salesman", "Net Sales", "Kontribusi %"]].sort_values("Net Sales", ascending=False) \
-                        .reset_index(drop=True)
+            if sub_bd.empty:
+                st.info("Tidak ada salesman pada filter saat ini.")
+            else:
+                ent_rank = {}
+                for ent_, sf_ in sub_bd[["Entitas", "_sf"]].drop_duplicates().itertuples(index=False):
+                    ent_rank[ent_] = (99, "") if ent_ == "MUH" else (BD_SF_ORDER.index(sf_), ent_)
+                ents = sorted(ent_rank, key=lambda e_: (ent_rank[e_][0], ent_rank[e_][1]))
+                net_pv = (sub_bd.groupby(["Entitas", "_divisi_norm"])["Net Sales"].sum()
+                          .unstack(fill_value=0).reindex(index=ents, columns=BD_KODE, fill_value=0))
 
-                    if sub.empty:
-                        st.info("Tidak ada salesman pada filter saat ini.")
-                        continue
+                # Kontribusi % per entitas per divisi (Net Sales entitas ÷ Net Sales area, dari LBP)
+                kontr = pd.DataFrame({k: (net_pv[k] / area_net_divisi.get(k, 0) * 100) if area_net_divisi.get(k, 0) else 0.0
+                                      for k in BD_KODE}, index=ents)
 
-                    editor_key = fkey(f"bd_editor_{kode_div}")
-                    edit_base = sub[["Salesman", "Kontribusi %"]].copy()
-                    edit_base["Adjustment %"] = edit_base["Kontribusi %"]
-                    st.caption("Kolom **Adjustment %** bisa diubah manual (default = Kontribusi % hasil hitungan "
-                               "dari LBP). Target Teradjust di bawah ikut berubah otomatis sesuai angka yang diisi.")
-                    edited = st.data_editor(
-                        edit_base, key=editor_key, hide_index=True, width="stretch",
-                        column_config={
-                            "Salesman": st.column_config.TextColumn("Salesman", disabled=True),
-                            "Kontribusi %": st.column_config.NumberColumn("Kontribusi % (LBP)", format="%.1f%%", disabled=True),
-                            "Adjustment %": st.column_config.NumberColumn("Adjustment %", format="%.1f%%",
-                                                                           min_value=0.0, max_value=100.0, step=0.1),
-                        },
-                    )
-                    hasil = sub.merge(edited[["Salesman", "Adjustment %"]], on="Salesman", how="left")
-                    hasil["Target Teradjust"] = (hasil["Adjustment %"].fillna(0) / 100 * area_tgt).round(0)
-                    show_df(format_cols(hasil, rp_cols=["Net Sales", "Target Teradjust"], pct_cols=["Kontribusi %", "Adjustment %"]),
-                            hide_index=True, use_container_width=True)
-                    st.caption(f"Total Target Teradjust {label_div}: **{fmt_rp(hasil['Target Teradjust'].sum())}** "
-                               f"dari Target Area **{fmt_rp(area_tgt)}** "
-                               f"({fmt_pct(hasil['Adjustment %'].fillna(0).sum())} total Adjustment).")
-                    download_button(hasil, f"Download Excel ({label_div})", f"breakdown_target_{kode_div}.xlsx",
-                                     f"dl_bd_{kode_div}")
+                # ----- Total target semuanya (kartu ringkas, dari file Excel) -----
+                kcols = st.columns(5)
+                with kcols[0]:
+                    kpi_card("🎯", "Total Target MU 245", fmt_rp(area_tgt_mu), "jumlah 4 divisi dari file Excel")
+                for kc_, k_ in zip(kcols[1:], BD_KODE):
+                    with kc_:
+                        kpi_card(BD_ICON[k_], BD_SHOW[k_], fmt_rp(area_tgt_div[k_]), "target area (file Excel)")
+
+                # ----- Menu Adjustment -----
                 st.write("")
+                reset_n = st.session_state.get("bd_reset_n", 0)
+                with st.container(border=True):
+                    st.markdown("#### ✏️ Menu Adjustment")
+                    st.caption("Ubah **Adjustment %** per divisi di tabel ini (nilai awal = Kontribusi % hasil hitungan LBP: "
+                               "Net Sales ÷ Net Sales area). Target tiap baris = Adjustment % × Target Area divisi, dan "
+                               "tabel Breakdown Target di bawah ikut berubah otomatis. Idealnya total tiap divisi = 100%.")
+                    edit_base = pd.DataFrame({"Entitas": ents})
+                    for k_ in BD_KODE:
+                        edit_base[f"{BD_SHOW[k_]} Adj %"] = kontr[k_].values
+                    ccfg = {"Entitas": st.column_config.TextColumn("Entitas", disabled=True, pinned=True)}
+                    for k_ in BD_KODE:
+                        ccfg[f"{BD_SHOW[k_]} Adj %"] = st.column_config.NumberColumn(
+                            f"{BD_ICON[k_]} {BD_SHOW[k_]} Adj %", format="%.1f%%", min_value=0.0, max_value=100.0, step=0.1)
+                    try:
+                        edited = st.data_editor(edit_base, key=fkey(f"bd_editor_{reset_n}", salesman_bd), hide_index=True,
+                                                width="stretch", column_config=ccfg)
+                    except Exception:
+                        ccfg["Entitas"] = st.column_config.TextColumn("Entitas", disabled=True)
+                        edited = st.data_editor(edit_base, key=fkey(f"bd_editor_{reset_n}", salesman_bd), hide_index=True,
+                                                width="stretch", column_config=ccfg)
+                    if st.button("↺ Reset semua Adjustment ke Kontribusi %", key="bd_reset_btn"):
+                        st.session_state["bd_reset_n"] = reset_n + 1
+                        st.rerun()
+
+                adj = pd.DataFrame({k: pd.to_numeric(edited[f"{BD_SHOW[k]} Adj %"], errors="coerce").fillna(0).values
+                                    for k in BD_KODE}, index=ents)
+                tgt_ent = pd.DataFrame({k: adj[k] / 100 * area_tgt_div[k] for k in BD_KODE}, index=ents)
+                tgt_ent["MU"] = tgt_ent[BD_KODE].sum(axis=1)
+                net_mu_ent = net_pv[BD_KODE].sum(axis=1)
+
+                # Cek total Adjustment per divisi
+                chk = []
+                for k_ in BD_KODE:
+                    tot_ = float(adj[k_].sum())
+                    ok_ = abs(tot_ - 100) <= 0.05
+                    chk.append(f"{BD_ICON[k_]} {BD_SHOW[k_]}: **{tot_:.1f}%** {'✓' if ok_ else '⚠️'}")
+                if full_scope:
+                    st.caption("Total Adjustment per divisi → " + " · ".join(chk))
+
+                # ----- Tabel Breakdown Target (lurus ke kanan: MU 245 | Coffee | Cereal | Instant Food | Home Care) -----
+                import html as _html
+                groups = [("MU 245", "🏢")] + [(BD_SHOW[k_], BD_ICON[k_]) for k_ in BD_KODE]
+                h1 = '<th rowspan="2" class="bd-first">Entitas</th>' + "".join(
+                    f'<th colspan="3" class="gl grp">{ic_} {_html.escape(nm_)}</th>' for nm_, ic_ in groups)
+                h2 = "".join('<th class="gl">Kontribusi %</th><th>Adjustment %</th><th>Target</th>' for _ in groups)
+
+                def _row(label, kont_vals, adj_vals, tgt_vals, cls="", flag=None):
+                    cells = [f'<td class="bd-first">{_html.escape(str(label))}</td>']
+                    for gi_ in range(5):
+                        bad_ = " bad" if (flag and gi_ > 0 and flag[gi_ - 1]) else ""
+                        cells.append(f'<td class="gl">{fmt_pct(kont_vals[gi_])}</td>'
+                                     f'<td class="{bad_.strip()}">{fmt_pct(adj_vals[gi_])}</td><td>{fmt_rp(tgt_vals[gi_])}</td>')
+                    return f'<tr class="{cls}">' + "".join(cells) + "</tr>"
+
+                body = []
+                for e_ in ents:
+                    kont_mu = (net_mu_ent[e_] / area_net_mu * 100) if area_net_mu else 0.0
+                    adj_mu = (tgt_ent.loc[e_, "MU"] / area_tgt_mu * 100) if area_tgt_mu else 0.0
+                    body.append(_row(e_,
+                                     [kont_mu] + [kontr.loc[e_, k_] for k_ in BD_KODE],
+                                     [adj_mu] + [adj.loc[e_, k_] for k_ in BD_KODE],
+                                     [tgt_ent.loc[e_, "MU"]] + [tgt_ent.loc[e_, k_] for k_ in BD_KODE]))
+                tot_kont = [float(net_mu_ent.sum() / area_net_mu * 100) if area_net_mu else 0.0] + [float(kontr[k_].sum()) for k_ in BD_KODE]
+                tot_adj = [float(tgt_ent["MU"].sum() / area_tgt_mu * 100) if area_tgt_mu else 0.0] + [float(adj[k_].sum()) for k_ in BD_KODE]
+                tot_tgt = [float(tgt_ent["MU"].sum())] + [float(tgt_ent[k_].sum()) for k_ in BD_KODE]
+                flag_tot = [full_scope and abs(float(adj[k_].sum()) - 100) > 0.05 for k_ in BD_KODE]
+                body.append(_row("TOTAL", tot_kont, tot_adj, tot_tgt, cls="tot", flag=flag_tot))
+
+                st.write("")
+                with st.container(border=True):
+                    st.markdown("#### 🧩 Breakdown Target")
+                    st.caption("Geser tabel ke kanan untuk melihat semua divisi (kolom Entitas tetap menempel di kiri). "
+                               "**MU 245** = jumlah target 4 divisi per baris. **MUH** = gabungan semua salesman di luar "
+                               "TO Grosir, TO Retail, Motoris, KVS ST dan Sales Office.")
+                    st.markdown('<div class="tbl-wrap"><table class="tbl bd"><thead><tr>' + h1 + "</tr><tr>" + h2 +
+                                "</tr></thead><tbody>" + "".join(body) + "</tbody></table></div>", unsafe_allow_html=True)
+                    st.caption(f"**Total Target semuanya (MU 245): {fmt_rp(tot_tgt[0])}** dari Target Area "
+                               f"**{fmt_rp(area_tgt_mu)}**" + ("" if full_scope else " — (filter salesman aktif: total hanya baris yang ditampilkan)"))
+
+                    flat = pd.DataFrame({"Entitas": ents + ["TOTAL"]})
+                    for gi_, (nm_, _ic) in enumerate(groups):
+                        flat[f"{nm_} Kontribusi %"] = [(net_mu_ent[e_] / area_net_mu * 100) if (gi_ == 0 and area_net_mu)
+                                                        else (kontr.loc[e_, BD_KODE[gi_ - 1]] if gi_ else 0.0) for e_ in ents] + [tot_kont[gi_]]
+                        flat[f"{nm_} Adjustment %"] = [((tgt_ent.loc[e_, "MU"] / area_tgt_mu * 100) if (gi_ == 0 and area_tgt_mu)
+                                                         else (adj.loc[e_, BD_KODE[gi_ - 1]] if gi_ else 0.0)) for e_ in ents] + [tot_adj[gi_]]
+                        flat[f"{nm_} Target"] = [(tgt_ent.loc[e_, "MU" if gi_ == 0 else BD_KODE[gi_ - 1]]) for e_ in ents] + [tot_tgt[gi_]]
+                    download_button(flat.round(2), "Download Excel (Breakdown Target)", "breakdown_target.xlsx", "dl_bd_all")
 
 if page == "🔗 Ikat Target":
     with st.container(border=True):
