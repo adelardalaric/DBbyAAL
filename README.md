@@ -347,7 +347,8 @@ langsung dan dikonfirmasi sebelum dikerjakan:
 
 - **Capaian Salesman — toggle 90% / 110%**: dua tombol kecil di sebelah kanan kotak Gap Harian (baris Σ TOTAL).
   Default **100%** (tidak klik apa-apa). Klik **110%** → Target jadi Target × 1,1 (mis. 100 → 110), Capaian tetap
-  (80), lalu % capaian dan Gap Harian dihitung ulang (gap 20 → 30). Klik tombol yang sama sekali lagi untuk
+  (80), dan Gap Harian dihitung ulang (gap 20 → 30). **% capaian dan bar tidak ikut berubah** (selalu dihitung
+  terhadap target 100%, mis. tetap 101,6%); kalau 110% belum tercapai, Gap Harian merah seperti biasa. Klik tombol yang sama sekali lagi untuk
   kembali ke 100%. Toggle berlaku untuk baris Σ TOTAL **dan** keempat baris divisi; kotak EC tidak berubah.
   Gambar PNG yang di-download tetap memakai target 100%.
   - Teknis: dipasang murni lewat CSS (radio tersembunyi tanpa atribut `checked` + label), jadi tidak memicu

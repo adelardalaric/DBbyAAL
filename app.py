@@ -1647,7 +1647,7 @@ def salesman_card_html(name: str, team: str, tgt, cap, div_rows: list | None = N
     div_rows: list of (icon, label, target, capaian).
     ec_row: (ec_tgt_full, ec_tgt_sd, ec_cap) — Target penuh periode, Target s/d hari ini, Capaian EC aktual.
     Update 3.7: toggle 90% / 110% di kanan kotak Gap Harian. Target (Total + divisi) dikali faktor, Capaian tetap,
-    % dan Gap Harian ikut dihitung ulang. Tiga varian badan kartu (100/90/110) dirender sekaligus; varian aktif
+    Gap Harian dihitung ulang; % capaian TIDAK berubah (selalu vs target 100%). Tiga varian badan kartu (100/90/110) dirender sekaligus; varian aktif
     dipilih murni lewat CSS (radio tersembunyi + label), default 100% — tanpa rerun Streamlit."""
     import html as _html
     tag = f'<span class="sc-tag">{_html.escape(team)}</span>' if team and team != "Lainnya" else ""
@@ -1662,7 +1662,8 @@ def salesman_card_html(name: str, team: str, tgt, cap, div_rows: list | None = N
 
     def _body(factor: float, active: int) -> str:
         t = tgt * factor if pd.notna(tgt) else tgt
-        pct = (cap / t * 100) if pd.notna(t) and t else np.nan
+        # % capaian (dan bar) SELALU dihitung terhadap target 100% — toggle hanya mengubah Target & Gap Harian
+        pct = (cap / tgt * 100) if pd.notna(tgt) and tgt else np.nan
         css, gtxt, _ = gap_state(t, cap)
         o = [f'<div class="tv tv{active}">',
              '<div class="sc-row sc-total sc-tg"><div class="sc-lab">Σ TOTAL</div>',
@@ -1672,7 +1673,7 @@ def salesman_card_html(name: str, team: str, tgt, cap, div_rows: list | None = N
             o.append('<div class="sc-sep"></div>')
             for icon, lbl, d_tgt, d_cap in div_rows:
                 dt = d_tgt * factor if pd.notna(d_tgt) else d_tgt
-                d_pct = (d_cap / dt * 100) if pd.notna(dt) and dt else np.nan
+                d_pct = (d_cap / d_tgt * 100) if pd.notna(d_tgt) and d_tgt else np.nan   # % tetap vs target 100%
                 d_css, d_gtxt, _ = gap_state(dt, d_cap)
                 g_cls = {"dv-gap-ok": " gap-ok", "dv-gap-bad": " gap-bad"}.get(d_css, "")
                 o.append(f'<div class="sc-row sc-divisi sc-tg"><div class="sc-lab">{icon} {lbl}</div>'
